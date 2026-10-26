@@ -92,6 +92,54 @@
   100% { opacity: 0; }
 }
 
+.mission-cloud-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s linear;
+  background:
+    radial-gradient(ellipse at 38% 42%, rgba(246, 252, 255, 0.24), transparent 42%),
+    radial-gradient(ellipse at 67% 57%, rgba(226, 244, 255, 0.18), transparent 38%),
+    radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.08), rgba(213, 236, 250, 0.2) 100%);
+}
+
+.mission-cover-badge {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-top: 1px solid rgba(207, 242, 255, 0.3);
+  border-bottom: 1px solid rgba(207, 242, 255, 0.18);
+  background: linear-gradient(90deg, transparent, rgba(214, 243, 255, 0.08), transparent);
+  animation: cloud-cover-in 0.35s var(--ease);
+}
+
+.mission-cover-badge span {
+  color: #d9f6ff;
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-shadow: 0 1px 3px rgba(2, 13, 21, 0.7);
+}
+
+.mission-cover-badge small {
+  color: rgba(204, 239, 252, 0.72);
+  font-size: 0.45rem;
+  letter-spacing: 0.08em;
+}
+
+@keyframes cloud-cover-in {
+  from { opacity: 0; transform: translate(-50%, 5px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
 /* ---------- HUD SHELL ---------- */
 
 .mission-hud {

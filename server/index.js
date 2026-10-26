@@ -18,6 +18,7 @@ import {
 } from './auth.js';
 import { redeemCode } from './codes.js';
 import { attachDuelServer } from './duel.js';
+import { attachAir3DServer } from './air3d.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -289,6 +290,7 @@ app.use((error, _req, res, _next) => {
 });
 
 attachDuelServer(io);
+attachAir3DServer(io);
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`Sky Strike Arena online -> http://localhost:${port}`);

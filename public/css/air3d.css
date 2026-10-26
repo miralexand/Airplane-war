@@ -1,0 +1,530 @@
+/* =========================================================
+   SKY//STRIKE — 3D LAN LOBBY & MULTIPLAYER HUD
+   ========================================================= */
+
+.air3d-layout {
+  display: grid;
+  grid-template-columns: 1.12fr 0.94fr 0.84fr;
+  gap: 12px;
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  flex: 1;
+}
+
+.air3d-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 410px;
+  padding: 25px;
+  overflow: hidden;
+  border: 1px solid rgba(87, 229, 255, 0.14);
+  background:
+    linear-gradient(145deg, rgba(11, 28, 45, 0.78), rgba(4, 10, 18, 0.56));
+}
+
+.air3d-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 25px;
+  right: 25px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(87, 229, 255, 0.3), transparent);
+}
+
+.air3d-card > h3 {
+  margin-top: 10px;
+  font-family: var(--display);
+  font-size: 1.45rem;
+  font-weight: 400;
+  letter-spacing: 0.07em;
+}
+
+.air3d-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.air3d-mode {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 112px;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.018);
+  text-align: left;
+  transition: 0.25s var(--ease);
+}
+
+.air3d-mode:hover {
+  border-color: rgba(87, 229, 255, 0.28);
+  background: rgba(87, 229, 255, 0.035);
+}
+
+.air3d-mode.is-active {
+  border-color: rgba(87, 229, 255, 0.46);
+  background: linear-gradient(100deg, rgba(87, 229, 255, 0.085), rgba(3, 11, 19, 0.14));
+  box-shadow: inset 3px 0 0 var(--cyan), 0 0 28px rgba(87, 229, 255, 0.04);
+}
+
+.air3d-mode-icon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(87, 229, 255, 0.23);
+  border-radius: 50%;
+  background: rgba(87, 229, 255, 0.045);
+}
+
+.air3d-mode-icon i {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 4px;
+  margin-top: -2px;
+  background: var(--cyan);
+  box-shadow: 0 0 8px rgba(87, 229, 255, 0.6);
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+}
+
+.air3d-mode-icon i:first-child {
+  left: 9px;
+}
+
+.air3d-mode-icon i:last-child {
+  right: 9px;
+  transform: rotate(180deg);
+}
+
+.air3d-mode-icon.duel {
+  border-color: rgba(255, 110, 159, 0.24);
+  background: rgba(255, 110, 159, 0.045);
+}
+
+.air3d-mode-icon.duel i {
+  background: var(--rose);
+  box-shadow: 0 0 8px rgba(255, 110, 159, 0.6);
+}
+
+.air3d-mode-icon.duel i:first-child {
+  top: 14px;
+  left: 10px;
+}
+
+.air3d-mode-icon.duel i:last-child {
+  top: 28px;
+  right: 10px;
+  transform: rotate(180deg);
+}
+
+.air3d-mode-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.air3d-mode-copy b {
+  color: #e3faff;
+  font-family: var(--display);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.air3d-mode-copy small {
+  color: var(--cyan);
+  font-family: var(--display);
+  font-size: 0.43rem;
+  letter-spacing: 0.17em;
+}
+
+.air3d-mode-copy em {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.55rem;
+  font-style: normal;
+  line-height: 1.6;
+}
+
+.air3d-mode-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 2px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--muted-2);
+  font-family: var(--display);
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+}
+
+.air3d-mode.is-active .air3d-mode-tag {
+  color: var(--cyan);
+  border-color: rgba(87, 229, 255, 0.25);
+}
+
+.air3d-loadout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.air3d-loadout .eyebrow {
+  width: 100%;
+  font-size: 0.44rem;
+}
+
+.air3d-loadout b {
+  color: #e4fbff;
+  font-family: var(--display);
+  font-size: 0.82rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.air3d-loadout small {
+  color: var(--muted-2);
+  font-size: 0.52rem;
+}
+
+.air3d-desc {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  line-height: 1.8;
+}
+
+#air3d-create-btn {
+  margin-top: 22px;
+}
+
+#air3d-join-form {
+  margin-top: 14px;
+}
+
+#air3d-join-form .btn {
+  width: 100%;
+  margin-top: 7px;
+}
+
+.air3d-network {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.air3d-network .section-head {
+  margin-bottom: 7px;
+}
+
+.air3d-network .network-list {
+  margin: 0;
+}
+
+.air3d-network .network-url {
+  padding: 6px 8px;
+  font-size: 0.56rem;
+}
+
+.air3d-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-top: 20px;
+  list-style: none;
+}
+
+.air3d-info-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 11px;
+  border-left: 1px solid rgba(87, 229, 255, 0.18);
+}
+
+.air3d-info-list b {
+  color: #cfeff8;
+  font-family: var(--display);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.air3d-info-list span {
+  color: var(--muted-2);
+  font-size: 0.52rem;
+  line-height: 1.65;
+}
+
+.air3d-signal {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: auto;
+  padding-top: 18px;
+  color: var(--muted-2);
+  font-family: var(--display);
+  font-size: 0.44rem;
+  letter-spacing: 0.14em;
+}
+
+.air3d-signal i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse-dot 2s ease infinite;
+}
+
+.air3d-waiting {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(800px, 100%);
+  margin: auto;
+  padding: 50px 20px;
+  text-align: center;
+}
+
+.air3d-waiting .waiting-orbit {
+  top: 47%;
+}
+
+.air3d-waiting h3 {
+  margin-top: 10px;
+  font-family: var(--display);
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+.air3d-waiting .eyebrow {
+  color: var(--cyan);
+}
+
+.air3d-waiting .wingman-slots {
+  margin-top: 25px;
+}
+
+.air3d-waiting-mode {
+  margin-top: 16px;
+  color: var(--cyan);
+  font-family: var(--display);
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+}
+
+.air3d-waiting > .text-btn {
+  margin-top: 24px;
+}
+
+/* ---------- 3D LAN HUD ---------- */
+
+.radar-sweep {
+  display: none;
+}
+
+.mission-pvp-banner {
+  position: absolute;
+  left: 50%;
+  top: 84px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transform: translateX(-50%);
+  padding: 5px 14px;
+  border-top: 1px solid rgba(255, 110, 159, 0.25);
+  border-bottom: 1px solid rgba(255, 110, 159, 0.16);
+  background: linear-gradient(90deg, transparent, rgba(29, 8, 18, 0.4), transparent);
+}
+
+.mpv-side {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.mpv-side span {
+  color: var(--muted);
+  font-size: 0.52rem;
+  letter-spacing: 0.08em;
+}
+
+.mpv-side b {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.mpv-side.self b {
+  color: var(--cyan);
+}
+
+.mpv-side.foe b {
+  color: var(--rose);
+}
+
+.mpv-side.foe span {
+  text-align: right;
+}
+
+.mpv-vs {
+  color: var(--muted-2);
+  font-family: var(--display);
+  font-size: 0.44rem;
+  letter-spacing: 0.16em;
+}
+
+.mission-wingman-badge {
+  position: absolute;
+  right: clamp(22px, 3vw, 44px);
+  top: 94px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-right: 9px;
+  border-right: 1px solid rgba(87, 229, 255, 0.32);
+}
+
+.mission-wingman-badge span {
+  color: var(--cyan);
+  font-size: 0.4rem;
+  letter-spacing: 0.16em;
+}
+
+.mission-wingman-badge b {
+  color: #d9f8ff;
+  font-family: var(--display);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.mission-lan-countdown {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at center, rgba(14, 48, 68, 0.16), transparent 48%),
+    rgba(2, 6, 12, 0.52);
+}
+
+.mission-lan-countdown > span {
+  color: var(--cyan);
+  font-family: var(--display);
+  font-size: 0.55rem;
+  letter-spacing: 0.3em;
+}
+
+.mission-lan-countdown > strong {
+  margin: 4px 0 2px;
+  color: #f1fdff;
+  font-family: var(--display);
+  font-size: clamp(5rem, 12vw, 8rem);
+  font-weight: 500;
+  line-height: 1;
+  text-shadow: 0 0 54px rgba(87, 229, 255, 0.22);
+}
+
+.mission-lan-countdown > small {
+  color: var(--muted);
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+}
+
+@media (max-width: 1120px) {
+  .air3d-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .air3d-info-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .air3d-info-list li {
+    flex: 1 1 160px;
+  }
+}
+
+@media (max-width: 860px), (pointer: coarse) {
+  .mission-pvp-banner {
+    top: 57px;
+    gap: 8px;
+    padding: 3px 9px;
+  }
+
+  .mpv-side span {
+    max-width: 62px;
+    overflow: hidden;
+    font-size: 0.42rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mpv-side b {
+    font-size: 0.8rem;
+  }
+
+  .mission-wingman-badge {
+    top: 66px;
+    right: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .air3d-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .air3d-card {
+    min-height: 0;
+  }
+
+  .air3d-info-list {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 720px) {
+  .air3d-card {
+    padding: 19px;
+  }
+
+  .air3d-card > h3 {
+    font-size: 1.25rem;
+  }
+
+  .air3d-mode {
+    min-height: 96px;
+    padding: 10px;
+  }
+
+  .air3d-mode-copy em {
+    font-size: 0.52rem;
+  }
+
+  .air3d-waiting {
+    padding: 35px 8px;
+  }
+}

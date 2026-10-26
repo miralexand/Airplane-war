@@ -387,11 +387,22 @@ export class Mission3D {
     this.skinId = getSkin(options.skin).id;
     this.plane = getPlane(this.planeId);
     this.skin = getSkin(this.skinId);
+    this.network = options.network || null;
+    this.networkRole = this.network?.role || null;
+    this.networkMode = this.network?.mode || null;
+    this.isNetworkHost = this.networkRole === 'host';
+    this.isNetworkGuest = this.networkRole === 'guest';
+    this.isPvp = this.networkMode === 'pvp';
+    this.opponentProfile = this.network?.opponent || {
+      name: 'WINGMAN',
+      plane: 'falcon',
+      skin: 'chrome'
+    };
     this.state = 'briefing';
     this.paused = false;
     this.destroyed = false;
-    this.timeLimit = 180;
-    this.requiredKills = 6;
+    this.timeLimit = this.isPvp ? 300 : 180;
+    this.requiredKills = this.isPvp ? 0 : 6;
     this.kills = 0;
     this.score = 0;
     this.timeLeft = this.timeLimit;
@@ -423,6 +434,20 @@ export class Mission3D {
     this.cannonHits = 0;
     this.missileHits = 0;
     this.gForce = 1;
+    this.nextEnemyId = 1;
+    this.networkStateClock = 0;
+    this.snapshotClock = 0;
+    this.remoteTargetPosition = new THREE.Vector3(0, 330, -500);
+    this.remoteTargetQuaternion = new THREE.Quaternion();
+    this.remoteGroup = null;
+    this.remoteObject = null;
+    this.pvpState = {
+      hostHp: 120,
+      guestHp: 120,
+      hostScore: 0,
+      guestScore: 0,
+      ended: false
+    };
     this.pitch = 0;
     this.yaw = 0;
     this.roll = 0;
@@ -443,6 +468,7 @@ export class Mission3D {
     this.hudClock = 0;
     this.lastTime = performance.now();
     this.cloudTime = 0;
+    this.cloudImmersion = 0;
     this._tmpA = new THREE.Vector3();
     this._tmpB = new THREE.Vector3();
     this._tmpC = new THREE.Vector3();
@@ -455,6 +481,7 @@ export class Mission3D {
     this.initRenderer();
     this.initScene();
     this.initPlayer();
+    this.initNetworkRemote();
     this.bindEvents();
     this.resize();
     this.lastTime = performance.now();
@@ -554,7 +581,7 @@ export class Mission3D {
     }
 
     this.cloudTexture = makeCloudTexture();
-    this.cloudMaterials = [0.24, 0.15, 0.09].map((opacity) => new THREE.SpriteMaterial({
+    this.cloudMaterials = [0.3, 0.2, 0.13].map((opacity) => new THREE.SpriteMaterial({
       map: this.cloudTexture,
       color: '#f3fbff',
       transparent: true,
@@ -563,19 +590,41 @@ export class Mission3D {
       fog: true
     }));
     this.clouds = [];
-    for (let i = 0; i < 64; i += 1) {
-      const sprite = new THREE.Sprite(this.cloudMaterials[i % this.cloudMaterials.length]);
+    this.cloudVolumes = [];
+    const addCloudVolume = (x, y, z, radius) => {
+      const group = new THREE.Group();
+      group.position.set(x, y, z);
+      this.scene.add(group);
+      const volume = { group, radius };
+      const count = 3 + Math.floor(rand(0, 3));
+      for (let j = 0; j < count; j += 1) {
+        const sprite = new THREE.Sprite(this.cloudMaterials[Math.floor(rand(0, this.cloudMaterials.length))]);
+        const angle = rand(0, TAU);
+        const spread = Math.sqrt(Math.random()) * radius * 0.62;
+        sprite.position.set(
+          Math.cos(angle) * spread,
+          rand(-radius * 0.18, radius * 0.18),
+          Math.sin(angle) * spread
+        );
+        const scale = radius * rand(1.7, 2.7);
+        sprite.scale.set(scale, scale * rand(0.32, 0.54), 1);
+        group.add(sprite);
+      }
+      this.clouds.push(group);
+      this.cloudVolumes.push(volume);
+    };
+    addCloudVolume(240, 360, -760, 165);
+    addCloudVolume(-760, 520, -1680, 195);
+    addCloudVolume(980, 300, -2450, 175);
+    for (let i = 0; i < 21; i += 1) {
       const angle = rand(0, TAU);
-      const distance = rand(250, 5600);
-      sprite.position.set(
+      const distance = rand(500, 5200);
+      addCloudVolume(
         Math.cos(angle) * distance,
-        rand(70, 1750),
-        Math.sin(angle) * distance
+        rand(100, 1450),
+        Math.sin(angle) * distance,
+        rand(110, 230)
       );
-      const scale = rand(220, 760);
-      sprite.scale.set(scale, scale * rand(0.24, 0.48), 1);
-      this.scene.add(sprite);
-      this.clouds.push(sprite);
     }
 
     this.effectTextures = {
@@ -598,15 +647,315 @@ export class Mission3D {
       position: new THREE.Vector3(0, 330, 0),
       velocity: new THREE.Vector3(0, 0, -120),
       quaternion: new THREE.Quaternion(),
-      speed: 120,
-      hp: 100,
-      maxHp: 100,
+      speed: 132,
+      hp: 120,
+      maxHp: 120,
       radius: 8,
       alive: true,
       invuln: 0
     };
     this.playerGroup.position.copy(this.player.position);
     this.playerGroup.quaternion.copy(this.player.quaternion);
+  }
+
+  initNetworkRemote() {
+    if (!this.network) return;
+    const profile = this.opponentProfile;
+    const remotePlane = getPlane(profile.plane);
+    const remoteSkin = getSkin(profile.skin);
+    const model = buildFighter(remotePlane.id, remoteSkin.palette, this.isPvp);
+    this.remoteGroup = new THREE.Group();
+    this.remoteGroup.add(model.group);
+    this.remoteGroup.visible = false;
+    this.scene.add(this.remoteGroup);
+    this.remoteObject = {
+      group: this.remoteGroup,
+      model: model.group,
+      flames: model.flames,
+      position: this.remoteGroup.position,
+      quaternion: this.remoteGroup.quaternion,
+      hp: 120,
+      maxHp: 120,
+      radius: 8,
+      name: profile.name,
+      networkTarget: this.isPvp,
+      isPvpTarget: this.isPvp,
+      alive: false,
+      damageFlash: 0,
+      bank: 0
+    };
+  }
+
+  addNetworkFx(fx) {
+    if (!fx?.start || !fx?.end) return;
+    const start = new THREE.Vector3(Number(fx.start[0]) || 0, Number(fx.start[1]) || 0, Number(fx.start[2]) || 0);
+    const end = new THREE.Vector3(Number(fx.end[0]) || 0, Number(fx.end[1]) || 0, Number(fx.end[2]) || 0);
+    this.addTracer(start, end, fx.color || '#ffbc75', 0.12, 5);
+  }
+
+  setRemotePlayerState(state) {
+    if (!this.remoteGroup || !state) return;
+    this.remoteTargetPosition.set(
+      Number(state.x) || 0,
+      Number(state.y) || 0,
+      Number(state.z) || 0
+    );
+    this.remoteTargetQuaternion.set(
+      Number(state.qx) || 0,
+      Number(state.qy) || 0,
+      Number(state.qz) || 0,
+      Number.isFinite(Number(state.qw)) ? Number(state.qw) : 1
+    ).normalize();
+    this.remoteGroup.visible = true;
+    if (this.remoteObject && this.isPvp) this.remoteObject.alive = true;
+  }
+
+  updateRemoteVisual(dt) {
+    if (!this.remoteGroup) return;
+    const smooth = 1 - Math.exp(-13 * dt);
+    this.remoteGroup.position.lerp(this.remoteTargetPosition, smooth);
+    this.remoteGroup.quaternion.slerp(this.remoteTargetQuaternion, smooth);
+    for (const flame of this.remoteObject?.flames || []) {
+      flame.scale.set(1, 0.78 + Math.sin(this.elapsed * 25) * 0.1, 1);
+    }
+    if (this.remoteObject) {
+      if (this.isPvp) {
+        this.remoteObject.hp = this.isNetworkHost ? this.pvpState.guestHp : this.pvpState.hostHp;
+      }
+      this.remoteObject.damageFlash = Math.max(0, this.remoteObject.damageFlash - dt * 4);
+    }
+  }
+
+  emitNetworkState() {
+    if (!this.network) return;
+    this.callbacks.onNetworkState?.({
+      x: this.player.position.x,
+      y: this.player.position.y,
+      z: this.player.position.z,
+      qx: this.player.quaternion.x,
+      qy: this.player.quaternion.y,
+      qz: this.player.quaternion.z,
+      qw: this.player.quaternion.w,
+      speed: this.player.speed
+    });
+  }
+
+  emitNetworkSnapshot() {
+    if (!this.isNetworkHost) return;
+    const snapshot = {
+      mode: this.networkMode,
+      timeLeft: this.timeLeft,
+      kills: this.kills,
+      required: this.requiredKills,
+      score: this.score,
+      host: {
+        x: this.player.position.x,
+        y: this.player.position.y,
+        z: this.player.position.z,
+        qx: this.player.quaternion.x,
+        qy: this.player.quaternion.y,
+        qz: this.player.quaternion.z,
+        qw: this.player.quaternion.w
+      },
+      pvp: this.isPvp
+        ? {
+            hostHp: this.player.hp,
+            guestHp: this.pvpState.guestHp,
+            maxHp: this.player.maxHp
+          }
+        : null,
+      enemies: this.isPvp
+        ? []
+        : this.enemies
+            .filter((enemy) => enemy.alive && enemy !== this.remoteObject)
+            .map((enemy) => ({
+              id: enemy.networkId,
+              planeId: enemy.planeId || 'falcon',
+              variant: enemy.variant || 0,
+              name: enemy.name,
+              x: enemy.position.x,
+              y: enemy.position.y,
+              z: enemy.position.z,
+              qx: enemy.quaternion.x,
+              qy: enemy.quaternion.y,
+              qz: enemy.quaternion.z,
+              qw: enemy.quaternion.w,
+              hp: enemy.hp,
+              maxHp: enemy.maxHp
+            }))
+    };
+    this.callbacks.onNetworkSnapshot?.(snapshot);
+  }
+
+  applyNetworkSnapshot(snapshot) {
+    if (!this.isNetworkGuest || !snapshot) return;
+    if (snapshot.host) this.setRemotePlayerState(snapshot.host);
+    if (typeof snapshot.timeLeft === 'number') this.timeLeft = snapshot.timeLeft;
+    if (typeof snapshot.kills === 'number') this.kills = snapshot.kills;
+    if (typeof snapshot.score === 'number') this.score = snapshot.score;
+    if (this.isPvp && snapshot.pvp) {
+      this.pvpState.hostHp = Number(snapshot.pvp.hostHp) || 0;
+      this.pvpState.guestHp = Number(snapshot.pvp.guestHp) || 0;
+      if (this.remoteObject) this.remoteObject.hp = this.pvpState.hostHp;
+      const newHp = Math.max(0, this.pvpState.guestHp);
+      if (newHp < this.player.hp) {
+        this.player.damageFlash = 1;
+        this.cameraShake = Math.max(this.cameraShake, 7);
+        this.callbacks.onEvent?.({ type: 'damage', source: 'PVP' });
+      }
+      this.player.hp = newHp;
+      this.player.alive = newHp > 0;
+    } else if (this.isPvp && !snapshot.pvp) {
+      this.timeLeft = snapshot.timeLeft || this.timeLeft;
+    } else {
+      this.applyNetworkEnemies(snapshot.enemies || []);
+    }
+    this.emitHud(true);
+  }
+
+  createNetworkEnemy(data) {
+    const variant = Number(data.variant) || 0;
+    const palette = ENEMY_PALETTES[variant % ENEMY_PALETTES.length];
+    const model = buildFighter(data.planeId || 'falcon', palette, true);
+    const group = new THREE.Group();
+    group.add(model.group);
+    const hitGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: this.effectTextures.glow,
+      color: '#ff566c',
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    }));
+    hitGlow.scale.set(22, 22, 1);
+    group.add(hitGlow);
+    group.position.set(Number(data.x) || 0, Number(data.y) || 0, Number(data.z) || 0);
+    group.quaternion.set(
+      Number(data.qx) || 0,
+      Number(data.qy) || 0,
+      Number(data.qz) || 0,
+      Number.isFinite(Number(data.qw)) ? Number(data.qw) : 1
+    ).normalize();
+    this.scene.add(group);
+    const enemy = {
+      id: data.id,
+      networkId: data.id,
+      planeId: data.planeId || 'falcon',
+      variant,
+      group,
+      model: model.group,
+      flames: model.flames,
+      hitGlow,
+      position: group.position,
+      quaternion: group.quaternion,
+      forward: new THREE.Vector3(0, 0, -1),
+      velocity: new THREE.Vector3(),
+      speed: 0,
+      hp: Number(data.hp) || 0,
+      maxHp: Number(data.maxHp) || 36,
+      radius: 8,
+      name: data.name || 'UNKNOWN',
+      alive: true,
+      isSnapshotEnemy: true,
+      netTargetPosition: new THREE.Vector3(Number(data.x) || 0, Number(data.y) || 0, Number(data.z) || 0),
+      netTargetQuaternion: group.quaternion.clone(),
+      damageFlash: 0,
+      bank: 0,
+      turnBias: 1,
+      phase: rand(0, TAU),
+      lockProgress: 0
+    };
+    this.enemies.push(enemy);
+    return enemy;
+  }
+
+  applyNetworkEnemies(enemiesData) {
+    const remaining = new Set(enemiesData.map((item) => item.id));
+    for (const enemy of [...this.enemies]) {
+      if (enemy === this.remoteObject || !enemy.isSnapshotEnemy) continue;
+      if (remaining.has(enemy.networkId)) continue;
+      this.spawnExplosion(enemy.position.clone(), 1.8);
+      this.scene.remove(enemy.group);
+      this.disposeGroup(enemy.group);
+      this.enemies = this.enemies.filter((item) => item !== enemy);
+      if (this.lockTarget === enemy) {
+        this.lockTarget = null;
+        this.lockProgress = 0;
+        this.locked = false;
+      }
+      this.callbacks.onEvent?.({ type: 'kill', text: `${enemy.name} 击落`, score: 0 });
+    }
+    for (const data of enemiesData) {
+      let enemy = this.enemies.find((item) => item.isSnapshotEnemy && item.networkId === data.id);
+      if (!enemy) enemy = this.createNetworkEnemy(data);
+      enemy.hp = Number(data.hp) || 0;
+      enemy.maxHp = Number(data.maxHp) || enemy.maxHp;
+      enemy.name = data.name || enemy.name;
+      enemy.netTargetPosition.set(Number(data.x) || 0, Number(data.y) || 0, Number(data.z) || 0);
+      enemy.netTargetQuaternion.set(
+        Number(data.qx) || 0,
+        Number(data.qy) || 0,
+        Number(data.qz) || 0,
+        Number.isFinite(Number(data.qw)) ? Number(data.qw) : 1
+      ).normalize();
+    }
+  }
+
+  updateNetworkEnemies(dt) {
+    const smooth = 1 - Math.exp(-12 * dt);
+    for (const enemy of this.enemies) {
+      if (!enemy.isSnapshotEnemy) continue;
+      enemy.position.lerp(enemy.netTargetPosition, smooth);
+      enemy.quaternion.slerp(enemy.netTargetQuaternion, smooth);
+      enemy.group.position.copy(enemy.position);
+      enemy.group.quaternion.copy(enemy.quaternion);
+      enemy.damageFlash = Math.max(0, enemy.damageFlash - dt * 4);
+      if (enemy.hitGlow) enemy.hitGlow.material.opacity = enemy.damageFlash * 0.55;
+      for (const flame of enemy.flames) {
+        flame.scale.set(1, 0.72 + Math.sin(this.elapsed * 20 + enemy.phase) * 0.1, 1);
+      }
+    }
+  }
+
+  applyNetworkEnemyHit(id, damage) {
+    if (!this.isNetworkHost || !this.isCoopMode) return;
+    const enemy = this.enemies.find((item) => item.networkId === id);
+    if (!enemy || !enemy.alive) return;
+    enemy.hp = Math.max(0, enemy.hp - damage);
+    enemy.damageFlash = 1;
+    if (enemy.hp <= 0) this.killEnemy(enemy);
+  }
+
+  applyNetworkPvpHit(damage) {
+    if (!this.isNetworkHost || !this.isPvp || this.pvpState.ended) return;
+    this.player.hp = Math.max(0, this.player.hp - damage);
+    this.player.damageFlash = 1;
+    this.cameraShake = Math.max(this.cameraShake, 8);
+    this.callbacks.onEvent?.({ type: 'damage', source: 'PVP' });
+    if (this.player.hp <= 0) this.endPvp(false);
+  }
+
+  applyLocalPvpHit(damage) {
+    if (!this.isPvp || this.pvpState.ended) return;
+    if (this.isNetworkHost) {
+      this.pvpState.guestHp = Math.max(0, this.pvpState.guestHp - damage);
+      if (this.remoteObject) this.remoteObject.hp = this.pvpState.guestHp;
+      if (this.pvpState.guestHp <= 0) this.endPvp(true);
+    } else {
+      this.callbacks.onNetworkPvpHit?.({ damage });
+    }
+  }
+
+  endPvp(hostWon) {
+    if (this.pvpState.ended) return;
+    this.pvpState.ended = true;
+    if (this.isNetworkHost) {
+      this.endMission(hostWon, 'pvp');
+    }
+  }
+
+  get isCoopMode() {
+    return this.networkMode === 'coop';
   }
 
   bindEvents() {
@@ -681,15 +1030,16 @@ export class Mission3D {
     this.kills = 0;
     this.score = 0;
     this.reserveEnemies = 2;
-    this.missilesLeft = 6;
-    this.flaresLeft = 3;
+    this.missilesLeft = 8;
+    this.flaresLeft = 5;
     this.boost = 100;
-    this.player.hp = 100;
+    this.player.hp = 120;
+    this.player.maxHp = 120;
     this.player.alive = true;
     this.player.invuln = 0;
     this.player.position.set(0, 330, 0);
-    this.player.velocity.set(0, 0, -120);
-    this.player.speed = 120;
+    this.player.velocity.set(0, 0, -132);
+    this.player.speed = 132;
     this.player.quaternion.identity();
     this.playerModel.visible = true;
     this.groundWarned = false;
@@ -708,21 +1058,50 @@ export class Mission3D {
     this.stick.y = 0;
     this.stickTarget.x = 0;
     this.stickTarget.y = 0;
+    if (this.isPvp) {
+      const hostSide = this.isNetworkHost;
+      this.player.position.set(0, 330, hostSide ? 760 : -760);
+      this.player.velocity.set(0, 0, hostSide ? -132 : 132);
+      this.yaw = hostSide ? 0 : Math.PI;
+      this.remoteTargetPosition.set(0, 330, hostSide ? -760 : 760);
+      this.remoteTargetQuaternion.setFromAxisAngle(UP, hostSide ? Math.PI : 0);
+    }
     this.lockTarget = null;
     this.lockProgress = 0;
     this.locked = false;
+    this.cloudImmersion = 0;
+    this.cannonTimer = 0;
+    this.missileCooldown = 0;
+    this.flareCooldown = 0;
     this.shotsFired = 0;
     this.cannonHits = 0;
     this.missileHits = 0;
+    this.networkStateClock = 0;
+    this.snapshotClock = 0;
+    this.pvpState = { hostHp: 120, guestHp: 120, hostScore: 0, guestScore: 0, ended: false };
     this.clearEntities();
-    this.spawnInitialEnemies();
+    this.enemies = [];
+    if (this.isPvp) {
+      this.remoteObject.alive = this.remoteGroup.visible;
+      this.remoteObject.hp = 120;
+      this.remoteObject.maxHp = 120;
+      if (!this.enemies.includes(this.remoteObject)) this.enemies.push(this.remoteObject);
+    } else if (!this.isNetworkGuest) {
+      this.spawnInitialEnemies();
+    }
     this.playerGroup.position.copy(this.player.position);
     this.playerGroup.quaternion.identity();
     this.lastTime = performance.now();
     audio.stopAmbience();
     audio.startFlightEngine();
     this.emitHud(true);
-    this.callbacks.onEvent?.({ type: 'message', kicker: 'MISSION START', text: 'ENGAGE', tone: 'info' });
+    this.callbacks.onEvent?.({
+      type: 'message',
+      kicker: this.network ? (this.isPvp ? 'DOGFIGHT START' : 'FORMATION LINKED') : 'MISSION START',
+      text: this.isPvp ? '击落对手' : 'ENGAGE',
+      tone: 'info'
+    });
+    if (this.isNetworkHost) this.emitNetworkSnapshot();
   }
 
   pause() {
@@ -765,6 +1144,7 @@ export class Mission3D {
 
   clearEntities() {
     for (const enemy of this.enemies) {
+      if (enemy === this.remoteObject) continue;
       this.scene.remove(enemy.group);
       this.disposeGroup(enemy.group);
     }
@@ -795,17 +1175,17 @@ export class Mission3D {
 
   spawnInitialEnemies() {
     const positions = [
-      [-260, 340, -1100],
-      [310, 390, -1450],
-      [-620, 270, -1900],
-      [760, 460, -2200]
+      [-520, 380, -2050],
+      [640, 450, -2500],
+      [-1100, 300, -2950],
+      [1280, 560, -3250]
     ];
     positions.forEach((pos, index) => this.spawnEnemy(new THREE.Vector3(...pos), index));
   }
 
   spawnReinforcement() {
-    const angle = rand(-0.9, 0.9);
-    const distance = rand(1200, 1900);
+    const angle = rand(-0.75, 0.75);
+    const distance = rand(1900, 2800);
     const forward = this.getPlayerForward();
     const right = new THREE.Vector3().crossVectors(forward, UP).normalize();
     const position = this.player.position.clone()
@@ -841,6 +1221,10 @@ export class Mission3D {
     group.quaternion.copy(quaternion);
 
     const enemy = {
+      id: `e${this.nextEnemyId++}`,
+      networkId: `e${this.nextEnemyId - 1}`,
+      planeId: enemyId,
+      variant: index % ENEMY_PALETTES.length,
       group,
       model: model.group,
       flames: model.flames,
@@ -848,10 +1232,10 @@ export class Mission3D {
       position: group.position,
       quaternion: group.quaternion,
       forward: new THREE.Vector3(0, 0, -1),
-      velocity: toPlayer.clone().multiplyScalar(rand(75, 105)),
-      speed: rand(82, 112),
-      hp: 44,
-      maxHp: 44,
+      velocity: toPlayer.clone().multiplyScalar(rand(65, 90)),
+      speed: rand(72, 95),
+      hp: 36,
+      maxHp: 36,
       radius: 8,
       name: ENEMY_NAMES[(index + this.kills) % ENEMY_NAMES.length],
       alive: true,
@@ -862,7 +1246,7 @@ export class Mission3D {
       fireCooldown: rand(0.8, 2.4),
       burstShots: 0,
       burstTimer: 0,
-      missileCooldown: rand(6, 13),
+      missileCooldown: rand(12, 20),
       lockProgress: 0,
       damageFlash: 0,
       smokeTimer: 0,
@@ -898,13 +1282,13 @@ export class Mission3D {
     if (this.keys.has('KeyQ')) manualRoll -= 1;
     if (this.keys.has('KeyE')) manualRoll += 1;
 
-    this.yawRate = -yawInput * 1.08;
-    this.pitchRate = pitchInput * 1.18;
-    this.rollRate = damp(this.rollRate, -yawInput * 0.72 + manualRoll * 0.58, 8, dt);
+    this.yawRate = -yawInput * 1.38;
+    this.pitchRate = pitchInput * 1.52;
+    this.rollRate = damp(this.rollRate, -yawInput * 0.86 + manualRoll * 0.7, 10, dt);
 
     this.yaw += this.yawRate * dt;
-    this.pitch = clamp(this.pitch + this.pitchRate * dt, -1.22, 1.22);
-    this.roll = damp(this.roll, -yawInput * 0.7 + manualRoll * 0.52, 6.5, dt);
+    this.pitch = clamp(this.pitch + this.pitchRate * dt, -1.32, 1.32);
+    this.roll = damp(this.roll, -yawInput * 0.78 + manualRoll * 0.6, 8, dt);
 
     const qYaw = new THREE.Quaternion().setFromAxisAngle(UP, this.yaw);
     const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), this.pitch);
@@ -920,10 +1304,10 @@ export class Mission3D {
       this.boost = Math.min(100, this.boost + dt * 14);
       this.boostActive = false;
     }
-    const targetSpeed = 122 + (this.boostActive ? 105 : 0);
-    player.speed = damp(player.speed, targetSpeed, this.boostActive ? 2.5 : 1.4, dt);
+    const targetSpeed = 136 + (this.boostActive ? 120 : 0);
+    player.speed = damp(player.speed, targetSpeed, this.boostActive ? 2.8 : 1.8, dt);
     const targetVelocity = forward.multiplyScalar(player.speed);
-    player.velocity.lerp(targetVelocity, 1 - Math.exp(-2.15 * dt));
+    player.velocity.lerp(targetVelocity, 1 - Math.exp(-2.8 * dt));
     player.position.addScaledVector(player.velocity, dt);
 
     if (player.position.y < 48) {
@@ -954,6 +1338,7 @@ export class Mission3D {
       this.boundaryWarned = false;
     }
 
+    this.updateCloudImmersion();
     const maneuver = Math.abs(this.yawRate) + Math.abs(this.pitchRate);
     this.gForce = damp(this.gForce, 1 + maneuver * 2.7, 5, dt);
     player.invuln = Math.max(0, player.invuln - dt);
@@ -987,11 +1372,29 @@ export class Mission3D {
     playerGroupTransform(this.playerGroup, player);
   }
 
+  updateCloudImmersion() {
+    if (!this.cloudVolumes?.length) {
+      this.cloudImmersion = 0;
+      return;
+    }
+    let immersion = 0;
+    for (const volume of this.cloudVolumes) {
+      const center = volume.group.position;
+      const dx = this.player.position.x - center.x;
+      const dy = (this.player.position.y - center.y) * 2.2;
+      const dz = this.player.position.z - center.z;
+      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      immersion = Math.max(immersion, clamp(1 - distance / volume.radius, 0, 1));
+    }
+    this.cloudImmersion = immersion > 0.12 ? immersion : 0;
+  }
+
   updateEnemies(dt) {
+    if (this.isNetworkGuest || this.isPvp) return;
     const player = this.player;
     const forward = this.getPlayerForward();
     for (const enemy of this.enemies) {
-      if (!enemy.alive) continue;
+      if (!enemy.alive || enemy.networkTarget) continue;
       enemy.damageFlash = Math.max(0, enemy.damageFlash - dt * 4);
       if (enemy.hitGlow) enemy.hitGlow.material.opacity = enemy.damageFlash * 0.55;
       const toPlayer = player.position.clone().sub(enemy.position);
@@ -1002,15 +1405,15 @@ export class Mission3D {
       enemy.missileCooldown = Math.max(0, enemy.missileCooldown - dt);
       let desired = new THREE.Vector3();
 
-      if (distance > 720) {
-        const lead = player.velocity.clone().multiplyScalar(clamp(distance / 450, 0.2, 1.2));
+      if (distance > 1150) {
+        const lead = player.velocity.clone().multiplyScalar(clamp(distance / 520, 0.2, 1.1));
         desired.copy(player.position).add(lead).sub(enemy.position);
-      } else if (distance < 260) {
+      } else if (distance < 480) {
         const side = new THREE.Vector3().crossVectors(enemyForward, UP).normalize().multiplyScalar(enemy.turnBias);
-        desired.copy(enemyForward).multiplyScalar(0.35).add(side.multiplyScalar(0.9)).add(new THREE.Vector3(0, 0.18, 0));
+        desired.copy(enemyForward).multiplyScalar(0.3).add(side.multiplyScalar(0.9)).add(new THREE.Vector3(0, 0.22, 0));
       } else {
-        const side = new THREE.Vector3().crossVectors(directionToPlayer, UP).normalize().multiplyScalar(enemy.turnBias * 0.25);
-        desired.copy(directionToPlayer).add(side).add(new THREE.Vector3(0, 0.08, 0));
+        const side = new THREE.Vector3().crossVectors(directionToPlayer, UP).normalize().multiplyScalar(enemy.turnBias * 0.45);
+        desired.copy(directionToPlayer).add(side).add(new THREE.Vector3(0, 0.12, 0));
       }
 
       if (enemy.position.y < 110) desired.y += 0.9;
@@ -1025,7 +1428,7 @@ export class Mission3D {
       const turnAmount = 1 - previousForward.dot(nextForward);
       enemy.bank = damp(enemy.bank, clamp(turnAmount * 18 * enemy.turnBias, -0.7, 0.7), 5, dt);
       enemy.model.rotation.z = enemy.bank;
-      enemy.speed = damp(enemy.speed, distance < 260 ? 104 : 96, 1.4, dt);
+      enemy.speed = damp(enemy.speed, distance < 480 ? 92 : 80, 1.4, dt);
       enemy.position.addScaledVector(nextForward, enemy.speed * dt);
       enemy.position.y = clamp(enemy.position.y, 70, 1200);
       enemy.group.position.copy(enemy.position);
@@ -1037,20 +1440,20 @@ export class Mission3D {
       if (Math.random() < dt * 18) {
         this.spawnExhaust(enemy.position, nextForward, '#ff7a5c', 0.16);
       }
-      if (distance < 1500 && ahead > 0.82 && this.enemyMissiles.length < 4 && enemy.missileCooldown <= 0) {
-        enemy.lockProgress = Math.min(1, enemy.lockProgress + dt / 1.85);
+      if (distance < 1400 && ahead > 0.84 && this.enemyMissiles.length < 3 && enemy.missileCooldown <= 0 && this.cloudImmersion < 0.28) {
+        enemy.lockProgress = Math.min(1, enemy.lockProgress + dt / 2.5);
         if (enemy.lockProgress >= 1) {
           enemy.lockProgress = 0;
           this.launchEnemyMissile(enemy);
         }
       } else {
-        enemy.lockProgress = Math.max(0, enemy.lockProgress - dt * 1.2);
+        enemy.lockProgress = Math.max(0, enemy.lockProgress - dt * 1.8);
       }
 
       enemy.fireCooldown -= dt;
-      if (distance < 1050 && ahead > 0.9 && enemy.fireCooldown <= 0) {
-        enemy.fireCooldown = rand(1.15, 2.1);
-        enemy.burstShots = 5;
+      if (distance < 900 && ahead > 0.92 && enemy.fireCooldown <= 0 && this.cloudImmersion < 0.45) {
+        enemy.fireCooldown = rand(1.8, 2.9);
+        enemy.burstShots = 4;
         enemy.burstTimer = 0.02;
       }
       if (enemy.burstShots > 0) {
@@ -1074,16 +1477,17 @@ export class Mission3D {
   }
 
   enemyCannonShot(enemy, distance) {
-    const hitChance = clamp(0.28 - distance / 5600, 0.045, 0.24);
+    const cloudPenalty = 1 - this.cloudImmersion * 0.85;
+    const hitChance = clamp((0.19 - distance / 6800) * cloudPenalty, 0.02, 0.16);
     const hit = Math.random() < hitChance;
     const aim = this.player.position.clone();
-    const spread = hit ? rand(1.4, 4) : rand(18, 48);
+    const spread = hit ? rand(1.8, 5) : rand(24, 60);
     aim.add(new THREE.Vector3(rand(-spread, spread), rand(-spread, spread), rand(-spread, spread)));
     const start = enemy.position.clone().addScaledVector(enemy.forward, -4);
     this.addTracer(start, aim, '#ff606a', 0.09, 6);
     audio.enemyLaser();
     if (hit && this.player.alive) {
-      this.damagePlayer(rand(2.8, 4.6), 'CANNON');
+      this.damagePlayer(rand(2.1, 3.4), 'CANNON');
     }
   }
 
@@ -1112,7 +1516,7 @@ export class Mission3D {
     this.warningBeepTimer = 0;
     audio.missileLaunch();
     this.callbacks.onEvent?.({ type: 'message', kicker: 'MISSILE LAUNCH', text: 'MISSILE INBOUND', tone: 'danger' });
-    enemy.missileCooldown = rand(12, 18);
+    enemy.missileCooldown = rand(18, 26);
   }
 
   fireCannon() {
@@ -1144,16 +1548,31 @@ export class Mission3D {
       ? hitEnemy.position.clone()
       : this.player.position.clone().addScaledVector(aimDirection, 1250);
     this.addTracer(start, end, '#ffe08c', 0.115, 5);
+    if (this.network) {
+      this.callbacks.onNetworkFx?.({
+        type: 'tracer',
+        start: [start.x, start.y, start.z],
+        end: [end.x, end.y, end.z],
+        color: '#ffb46a'
+      });
+    }
     this.spawnMuzzleFlash(start);
     audio.cannon3d();
     if (hitEnemy) {
       this.cannonHits += 1;
-      hitEnemy.hp -= 9;
       hitEnemy.damageFlash = 1;
       this.hitMarkerTime = this.elapsed;
       this.spawnSparks(end, '#ffb168', 5);
       this.callbacks.onEvent?.({ type: 'hitmarker' });
-      if (hitEnemy.hp <= 0) this.killEnemy(hitEnemy);
+      if (hitEnemy.isPvpTarget) {
+        this.applyLocalPvpHit(9);
+      } else if (this.isNetworkGuest && this.isCoopMode) {
+        hitEnemy.hp = Math.max(0, hitEnemy.hp - 9);
+        this.callbacks.onNetworkEnemyHit?.({ id: hitEnemy.networkId, damage: 9 });
+      } else {
+        hitEnemy.hp -= 9;
+        if (hitEnemy.hp <= 0) this.killEnemy(hitEnemy);
+      }
     }
   }
 
@@ -1171,18 +1590,18 @@ export class Mission3D {
       if (!enemy.alive) continue;
       const toEnemy = enemy.position.clone().sub(this.player.position);
       const distance = toEnemy.length();
-      if (distance > 3200) continue;
+      if (distance > 3800) continue;
       const direction = toEnemy.clone().normalize();
       const dot = forward.dot(direction);
-      if (dot < 0.75) continue;
+      if (dot < 0.65) continue;
       const angle = Math.acos(clamp(dot, -1, 1));
-      const score = angle * 4 + distance / 5000;
+      const score = angle * 4 + distance / 6000;
       if (score < candidateScore) {
         candidateScore = score;
         candidate = enemy;
       }
     }
-    if (this.lockTarget && (!this.lockTarget.alive || this.lockTarget.position.distanceTo(this.player.position) > 3600)) {
+    if (this.lockTarget && (!this.lockTarget.alive || this.lockTarget.position.distanceTo(this.player.position) > 4200)) {
       this.lockTarget = null;
       this.lockProgress = 0;
       this.locked = false;
@@ -1193,7 +1612,7 @@ export class Mission3D {
       this.locked = false;
     } else if (candidate && candidate !== this.lockTarget) {
       const currentDir = this.lockTarget.position.clone().sub(this.player.position).normalize();
-      if (forward.dot(currentDir) < 0.72) {
+      if (forward.dot(currentDir) < 0.62) {
         this.lockTarget = candidate;
         this.lockProgress = 0;
         this.locked = false;
@@ -1211,11 +1630,11 @@ export class Mission3D {
       const screenX = (projected.x * 0.5 + 0.5) * width;
       const screenY = (-projected.y * 0.5 + 0.5) * height;
       const centerDistance = Math.hypot(screenX - width / 2, screenY - height / 2);
-      const reticleRadius = Math.min(width, height) * 0.075;
+      const reticleRadius = Math.min(width, height) * 0.09;
       inReticle = projected.z < 1 && centerDistance < reticleRadius;
       const forwardDot = forward.dot(this.lockTarget.position.clone().sub(this.player.position).normalize());
-      if (inReticle && forwardDot > 0.965) {
-        this.lockProgress = Math.min(1, this.lockProgress + dt / 1.35);
+      if (inReticle && forwardDot > 0.95) {
+        this.lockProgress = Math.min(1, this.lockProgress + dt / 1.0);
         if (this.lockProgress >= 1 && !this.locked) {
           this.locked = true;
           audio.lockedBeep();
@@ -1227,8 +1646,8 @@ export class Mission3D {
           audio.lockBeep(this.lockProgress);
         }
       } else {
-        this.lockProgress = Math.max(0, this.lockProgress - dt / 0.8);
-        if (this.lockProgress < 0.35) this.locked = false;
+        this.lockProgress = Math.max(0, this.lockProgress - dt / 1.1);
+        if (this.lockProgress < 0.2) this.locked = false;
       }
       this._hud.lockScreen = {
         x: screenX,
@@ -1255,35 +1674,38 @@ export class Mission3D {
   launchPlayerMissile() {
     if (this.state !== 'playing' || this.paused || !this.player.alive) return;
     if (this.missileCooldown > 0 || this.missilesLeft <= 0) return;
-    if (!this.locked || !this.lockTarget || !this.lockTarget.alive) {
-      this.message('NO LOCK', '将目标保持在准星内', 'warning');
-      audio.error();
-      return;
-    }
-    const target = this.lockTarget;
+    const lockedTarget = this.locked && this.lockTarget?.alive ? this.lockTarget : null;
+    const aimTarget = lockedTarget || (this.lockTarget?.alive ? this.lockTarget : null);
     const side = this.playerMissiles.length % 2 === 0 ? -1 : 1;
     const position = this.player.position.clone()
       .add(new THREE.Vector3(2.2 * side, -0.6, 1.2).applyQuaternion(this.player.quaternion));
     const group = buildMissile('player');
     group.position.copy(position);
-    const direction = target.position.clone().sub(position).normalize();
+    const direction = aimTarget
+      ? aimTarget.position.clone().sub(position).normalize()
+      : this.getPlayerForward();
     group.quaternion.copy(quaternionFromForward(direction));
     this.scene.add(group);
     this.playerMissiles.push({
       group,
       position: group.position,
-      velocity: direction.multiplyScalar(225),
-      target,
+      velocity: direction.multiplyScalar(275),
+      target: lockedTarget,
+      seekerDelay: 0.25,
       age: 0,
-      life: 9,
+      life: 10,
       trailTimer: 0
     });
     this.missilesLeft -= 1;
-    this.missileCooldown = 0.55;
-    this.lockProgress = 0;
-    this.locked = false;
+    this.missileCooldown = 0.35;
     audio.missileLaunch();
-    this.callbacks.onEvent?.({ type: 'message', kicker: 'FOX TWO', text: '导弹已发射', tone: 'success' });
+    if (lockedTarget) {
+      this.lockProgress = 0;
+      this.locked = false;
+      this.callbacks.onEvent?.({ type: 'message', kicker: 'FOX TWO', text: '导弹已发射', tone: 'success' });
+    } else {
+      this.callbacks.onEvent?.({ type: 'message', kicker: 'FOX TWO', text: '发射后制导 · 保持目标在准星内', tone: 'info' });
+    }
   }
 
   deployFlares() {
@@ -1293,7 +1715,7 @@ export class Mission3D {
       return;
     }
     this.flaresLeft -= 1;
-    this.flareCooldown = 3;
+    this.flareCooldown = 2.2;
     const forward = this.getPlayerForward();
     for (let i = 0; i < 8; i += 1) {
       const material = new THREE.SpriteMaterial({
@@ -1358,21 +1780,33 @@ export class Mission3D {
         missile.trailTimer = 0.025;
         this.spawnMissileTrail(missile.position, '#ffcf7a');
       }
+      if (!missile.target && missile.age > (missile.seekerDelay || 0.25) && this.locked && this.lockTarget?.alive) {
+        missile.target = this.lockTarget;
+        this.callbacks.onEvent?.({ type: 'message', kicker: 'SEEKER LOCK', text: '导弹已接收制导', tone: 'success' });
+        audio.lockedBeep();
+      }
       if (missile.target && !missile.target.alive) missile.target = null;
       if (missile.target) {
         const desired = missile.target.position.clone().sub(missile.position).normalize();
         const current = missile.velocity.clone().normalize();
         const angle = current.angleTo(desired);
-        const maxTurn = 2.35 * dt;
+        const maxTurn = 3.1 * dt;
         if (angle > 0.0001) {
           const axis = new THREE.Vector3().crossVectors(current, desired).normalize();
           const turn = new THREE.Quaternion().setFromAxisAngle(axis, Math.min(angle, maxTurn));
           missile.velocity.applyQuaternion(turn);
         }
         const distance = missile.position.distanceTo(missile.target.position);
-        if (distance < 20) {
+        if (distance < 24) {
           this.missileHits += 1;
-          this.killEnemy(missile.target);
+          if (missile.target.isPvpTarget) {
+            this.applyLocalPvpHit(70);
+          } else if (this.isNetworkGuest && this.isCoopMode) {
+            missile.target.hp = 0;
+            this.callbacks.onNetworkEnemyHit?.({ id: missile.target.networkId, damage: 999 });
+          } else {
+            this.killEnemy(missile.target);
+          }
           this.spawnExplosion(missile.position, 1.4);
           this.removePlayerMissile(i);
           continue;
@@ -1413,7 +1847,7 @@ export class Mission3D {
       if (missile.target && missile.targetType === 'player' && this.player.alive) {
         const distance = missile.position.distanceTo(this.player.position);
         const maneuver = Math.abs(this.yawRate) + Math.abs(this.pitchRate);
-        if (maneuver > 1.55 && distance > 110 && distance < 680) {
+        if (maneuver > 1.5 && distance > 110 && distance < 680) {
           missile.evadeTime += dt;
           if (missile.evadeTime > 0.58) {
             missile.target = null;
@@ -1423,6 +1857,18 @@ export class Mission3D {
           }
         } else {
           missile.evadeTime = Math.max(0, missile.evadeTime - dt * 2);
+        }
+
+        if (this.cloudImmersion > 0.35 && distance > 90) {
+          missile.cloudTime = (missile.cloudTime || 0) + dt;
+          if (missile.cloudTime > 0.68) {
+            missile.target = null;
+            missile.targetType = 'none';
+            this.message('CLOUD COVER', '云层干扰使导弹丢失目标', 'success');
+            audio.lockedBeep();
+          }
+        } else {
+          missile.cloudTime = Math.max(0, (missile.cloudTime || 0) - dt * 2);
         }
       }
 
@@ -1439,7 +1885,7 @@ export class Mission3D {
         const distance = missile.position.distanceTo(missile.target.position);
         if (distance < 18) {
           if (missile.targetType === 'player') {
-            this.damagePlayer(55, 'MISSILE');
+            this.damagePlayer(42, 'MISSILE');
             this.spawnExplosion(missile.position, 2.2);
           } else {
             this.spawnExplosion(missile.position, 0.8);
@@ -1779,13 +2225,15 @@ export class Mission3D {
     this.stickTarget.x = 0;
     this.stickTarget.y = 0;
     this.dragging = false;
-    if (success) {
+    if (this.isPvp) {
+      this.message(success ? 'DOGFIGHT WON' : 'DOGFIGHT LOST', success ? '对手已被击落' : '你被对手击落', success ? 'success' : 'danger');
+    } else if (success) {
       this.message('MISSION COMPLETE', '目标全部击落', 'success');
-      audio.victory();
     } else {
       this.message(reason === 'timeout' ? 'TIME EXPIRED' : 'AIRCRAFT DOWN', '任务失败', 'danger');
-      audio.defeat();
     }
+    if (success) audio.victory();
+    else audio.defeat();
     audio.stopFlightEngine();
     this.lockTarget = null;
     this.lockProgress = 0;
@@ -1816,7 +2264,13 @@ export class Mission3D {
       flaresLeft: this.flaresLeft,
       accuracy,
       plane: this.planeId,
-      skin: this.skinId
+      skin: this.skinId,
+      pvp: this.isPvp,
+      pvpHostHp: Math.max(0, Math.round(this.player.hp)),
+      pvpGuestHp: Math.max(0, Math.round(this.pvpState.guestHp)),
+      network: Boolean(this.network),
+      networkMode: this.networkMode,
+      networkRole: this.networkRole
     };
   }
 
@@ -1897,20 +2351,25 @@ export class Mission3D {
     if (forward.lengthSq() < 0.001) forward.set(0, 0, -1);
     forward.normalize();
     const right = new THREE.Vector3(-forward.z, 0, forward.x);
+    const range = 3800;
     const contacts = [];
+    const pushContact = (position, kind, target = false, distance = null) => {
+      const relative = position.clone().sub(this.player.position);
+      contacts.push({
+        x: clamp(relative.dot(right) / range, -1, 1),
+        y: clamp(-relative.dot(forward) / range, -1, 1),
+        distance: distance ?? Math.hypot(relative.x, relative.z),
+        target,
+        altitude: position.y,
+        type: kind
+      });
+    };
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
-      const relative = enemy.position.clone().sub(this.player.position);
-      const distance = Math.hypot(relative.x, relative.z);
-      const x = relative.dot(right) / 2800;
-      const y = -relative.dot(forward) / 2800;
-      contacts.push({
-        x: clamp(x, -1, 1),
-        y: clamp(y, -1, 1),
-        distance,
-        target: enemy === this.lockTarget,
-        altitude: enemy.position.y
-      });
+      pushContact(enemy.position, 'enemy', enemy === this.lockTarget);
+    }
+    if (this.remoteGroup?.visible && !this.isPvp) {
+      pushContact(this.remoteGroup.position, 'ally');
     }
     this._hud.contacts = contacts;
   }
@@ -1933,6 +2392,24 @@ export class Mission3D {
     this._hud.missiles = this.missilesLeft;
     this._hud.flares = this.flaresLeft;
     this._hud.score = this.score;
+    this._hud.cloud = this.cloudImmersion;
+    this._hud.networkMode = this.networkMode;
+    this._hud.networkRole = this.networkRole;
+    this._hud.network = this.network
+      ? {
+          mode: this.networkMode,
+          role: this.networkRole,
+          allyName: this.opponentProfile?.name || 'WINGMAN'
+        }
+      : null;
+    this._hud.pvp = this.isPvp
+      ? {
+          selfHp: Math.max(0, Math.round(this.player.hp)),
+          foeHp: Math.max(0, Math.round(this.isNetworkHost ? this.pvpState.guestHp : this.pvpState.hostHp)),
+          foeName: this.opponentProfile?.name || 'OPPONENT',
+          ended: this.pvpState.ended
+        }
+      : null;
     this._hud.lock = {
       active: Boolean(this.lockTarget),
       locked: this.locked,
@@ -1953,27 +2430,53 @@ export class Mission3D {
     this.elapsed += dt;
     this.timeLeft = Math.max(0, this.timeLimit - this.elapsed);
     if (this.timeLeft <= 0) {
-      this.endMission(false, 'timeout');
+      if (this.isPvp) {
+        this.endPvp(this.player.hp >= this.pvpState.guestHp);
+      } else {
+        this.endMission(false, 'timeout');
+      }
     }
   }
 
   update(dt) {
     if (this.state === 'playing' && !this.paused) {
-      this.updateMissionState(dt);
-      if (this.state !== 'playing') return;
+      if (!this.isNetworkGuest) {
+        this.updateMissionState(dt);
+        if (this.state !== 'playing') return;
+      }
       this.updatePlayer(dt);
-      this.updateEnemies(dt);
+      this.updateRemoteVisual(dt);
+      if (this.isNetworkGuest) {
+        if (this.isCoopMode) this.updateNetworkEnemies(dt);
+      } else {
+        this.updateEnemies(dt);
+      }
       this.updatePlayerMissiles(dt);
       this.updateEnemyMissiles(dt);
       this.updateFlares(dt);
       this.updateLock(dt);
       this.updateWarning(dt);
       this.updateEffects(dt);
+      if (this.network) {
+        this.networkStateClock += dt;
+        if (this.networkStateClock >= 0.05) {
+          this.networkStateClock = 0;
+          this.emitNetworkState();
+        }
+        if (this.isNetworkHost) {
+          this.snapshotClock += dt;
+          if (this.snapshotClock >= 0.1) {
+            this.snapshotClock = 0;
+            this.emitNetworkSnapshot();
+          }
+        }
+      }
       this.hudClock += dt;
       this.emitHud();
     } else {
       this.updateEffects(dt);
       this.updateFlares(dt);
+      this.updateRemoteVisual(dt);
       this.updateCamera(dt);
       this.hudClock += dt;
       this.emitHud();

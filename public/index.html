@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <meta name="theme-color" content="#050810" />
-  <meta name="description" content="SKY//STRIKE 苍穹突击：浏览器 3D 街机空战。机炮、追踪导弹锁定、热诱弹反制、限时拦截任务与局域网对决。" />
+  <meta name="description" content="SKY//STRIKE 苍穹突击：浏览器 3D 街机空战。云层隐蔽、仿真雷达、可先发后锁的追踪导弹，以及 3D 局域网组队与 PvP。" />
   <title>SKY//STRIKE · 苍穹突击 · 3D 街机空战</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2357e5ff' d='M32 4 41 27 60 35 41 38 32 60 23 38 4 35 23 27z'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/css/main.css" />
   <link rel="stylesheet" href="/css/mission.css" />
+  <link rel="stylesheet" href="/css/air3d.css" />
 </head>
 <body>
 <div id="app">
@@ -83,6 +84,13 @@
       </div>
 
       <div class="home-dock reveal">
+        <button class="dock-card" data-action="air3d">
+          <span class="dock-icon air3d">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 16h6M22 16h6M16 4v6M16 22v6"/><circle cx="16" cy="16" r="8"/><circle cx="16" cy="16" r="3"/><path d="m9 9 3 3M23 9l-3 3M9 23l3-3M23 23l-3-3"/></svg>
+          </span>
+          <span class="dock-text"><b>3D 联机</b><small>CO-OP / 3D PVP</small></span>
+          <span class="dock-arrow">↗</span>
+        </button>
         <button class="dock-card" data-action="duel">
           <span class="dock-icon duel">
             <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="16" r="4"/><circle cx="22" cy="16" r="4"/><path d="M14 16h4M6 26l3-4M26 26l-3-4M6 6l3 4M26 6l-3 4"/></svg>
@@ -117,7 +125,7 @@
         <span><i class="status-dot"></i> 空战网络运行中</span>
         <span class="hint-desktop">拖动鼠标操控 · SPACE 机炮 · F 导弹 · C 诱弹</span>
         <span class="hint-mobile">左侧摇杆操控 · 右侧武器按钮</span>
-        <span>v2.0.0 / OPERATION BLACK SKY</span>
+        <span>v2.1.0 / LAN AIR COMBAT</span>
       </div>
     </section>
 
@@ -257,6 +265,88 @@
       </div>
     </section>
 
+    <section class="screen page-screen" id="screen-air3d" aria-label="3D 局域网联机">
+      <div class="page-head">
+        <button class="back-btn" data-action="home" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m14 6-6 6 6 6"/></svg>
+        </button>
+        <div class="page-title">
+          <span class="eyebrow">LAN AIR COMBAT / 3D 数据链</span>
+          <h2>并肩，或<span>对决</span></h2>
+        </div>
+        <div class="online-pill"><i></i><span id="air3d-online">--</span><em>ONLINE</em></div>
+      </div>
+
+      <div class="air3d-layout" id="air3d-lobby">
+        <div class="air3d-card mode-panel">
+          <span class="eyebrow">SELECT OPERATION</span>
+          <h3>选择 3D 作战模式</h3>
+          <div class="air3d-modes">
+            <button class="air3d-mode is-active" data-air3d-mode="coop">
+              <span class="air3d-mode-icon"><i></i><i></i></span>
+              <span class="air3d-mode-copy"><b>双机编队</b><small>CO-OP CAMPAIGN</small><em>两名飞行员共享空域与击落进度，协同清理敌方编队。</em></span>
+              <span class="air3d-mode-tag">PvE</span>
+            </button>
+            <button class="air3d-mode" data-air3d-mode="pvp">
+              <span class="air3d-mode-icon duel"><i></i><i></i></span>
+              <span class="air3d-mode-copy"><b>3D 王牌对决</b><small>3D DOGFIGHT</small><em>同一片三维战场。机炮、导弹与云层隐蔽，只留一个胜者。</em></span>
+              <span class="air3d-mode-tag">PvP</span>
+            </button>
+          </div>
+          <div class="air3d-loadout">
+            <span class="eyebrow">YOUR AIRCRAFT</span>
+            <b id="air3d-plane-name">苍隼</b>
+            <small id="air3d-skin-name">苍穹银</small>
+          </div>
+        </div>
+
+        <div class="air3d-card connect-panel">
+          <span class="eyebrow">DATA LINK</span>
+          <h3>建立 3D 战场</h3>
+          <p class="air3d-desc">创建房间后，将 5 位房间码或邀请链接发给同一 Wi-Fi 下的飞行员。两名玩家接入后自动开始。</p>
+          <button class="btn btn-primary btn-full" id="air3d-create-btn"><span>创建编队房间</span><small>HOST</small></button>
+          <form id="air3d-join-form" autocomplete="off">
+            <label class="code-label" for="air3d-room-code">ROOM CODE</label>
+            <input class="room-code-input" id="air3d-room-code" maxlength="5" placeholder="A7K2Q" spellcheck="false" />
+            <button class="btn btn-ghost btn-full" type="submit"><span>接入 3D 战场</span><small>JOIN</small></button>
+          </form>
+          <div class="air3d-network">
+            <span class="section-head"><h3>局域网接入点</h3><span>LAN</span></span>
+            <div class="network-list" id="air3d-network-list"><span class="skeleton-line"></span></div>
+          </div>
+        </div>
+
+        <div class="air3d-card info-panel">
+          <span class="eyebrow">PROTOCOL</span>
+          <h3>3D 联机协议</h3>
+          <ul class="air3d-info-list">
+            <li><b>共享空域</b><span>编队模式中两名玩家面对同一批敌机，击落进度共享。</span></li>
+            <li><b>雷达扫描</b><span>HUD 雷达会显示敌机、僚机与对手方位，并随扫描线刷新。</span></li>
+            <li><b>云层隐蔽</b><span>云层会干扰锁定与导弹追踪，也可以用来摆脱追击。</span></li>
+            <li><b>主机权威</b><span>房主负责战场演算与敌机同步；请保持房主网络稳定。</span></li>
+          </ul>
+          <div class="air3d-signal"><i></i><span>ENCRYPTED LOCAL LINK</span></div>
+        </div>
+      </div>
+
+      <div class="air3d-waiting" id="air3d-waiting" hidden>
+        <div class="waiting-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="eyebrow" id="air3d-waiting-eyebrow">WAITING FOR WINGMAN</span>
+        <h3 id="air3d-waiting-title">等待队友接入</h3>
+        <div class="room-code-display">
+          <small>ROOM CODE</small>
+          <strong id="air3d-waiting-code">-----</strong>
+          <button class="copy-btn" id="air3d-copy-btn">复制邀请</button>
+        </div>
+        <div class="wingman-slots">
+          <div class="wingman filled" id="air3d-host-slot"><span>01</span><b id="air3d-host-name">你</b><small>房主</small></div>
+          <div class="wingman" id="air3d-guest-slot"><span>02</span><b>等待接入...</b><small>僚机</small></div>
+        </div>
+        <div class="air3d-waiting-mode" id="air3d-waiting-mode">CO-OP · 双机编队</div>
+        <button class="text-btn danger" id="air3d-cancel-btn">取消房间</button>
+      </div>
+    </section>
+
     <section class="screen game-screen" id="screen-game" aria-label="战斗中">
       <canvas id="game-canvas"></canvas>
       <div class="game-vignette" aria-hidden="true"></div>
@@ -329,6 +419,7 @@
       <div class="mission-vignette" aria-hidden="true"></div>
       <div class="mission-damage-vignette" id="mission-damage-vignette" aria-hidden="true"></div>
       <div class="mission-hit-flash" id="mission-hit-flash" aria-hidden="true"></div>
+      <div class="mission-cloud-overlay" id="mission-cloud-overlay" aria-hidden="true"></div>
 
       <div class="mission-hud" id="mission-hud">
         <div class="mission-top">
@@ -349,6 +440,16 @@
             <span>TARGETS</span>
             <b><i id="mission-kills">0</i><em>/</em><span id="mission-required">6</span></b>
           </div>
+        </div>
+
+        <div class="mission-pvp-banner" id="mission-pvp-banner" hidden>
+          <div class="mpv-side self"><span id="mission-pvp-self-name">你</span><b id="mission-pvp-self-hp">120</b></div>
+          <div class="mpv-vs">VS</div>
+          <div class="mpv-side foe"><b id="mission-pvp-foe-hp">120</b><span id="mission-pvp-foe-name">对手</span></div>
+        </div>
+
+        <div class="mission-wingman-badge" id="mission-wingman-badge" hidden>
+          <span>WINGMAN LINK</span><b id="mission-wingman-name">僚机</b><i></i>
         </div>
 
         <div class="mission-flight-data">
@@ -428,6 +529,11 @@
           <b id="mission-message-text">MISSILE EVADED</b>
         </div>
 
+        <div class="mission-cover-badge" id="mission-cover-badge" hidden>
+          <span>CLOUD COVER</span>
+          <small>云层隐蔽 · 敌方锁定受阻</small>
+        </div>
+
         <div class="missile-warning" id="missile-warning" hidden>
           <div class="mw-arrow" id="missile-warning-arrow"></div>
           <div class="mw-copy">
@@ -456,13 +562,19 @@
         </div>
       </div>
 
+      <div class="mission-lan-countdown" id="mission-lan-countdown" hidden>
+        <span id="mission-lan-mode">3D CO-OP</span>
+        <strong id="mission-lan-count">3</strong>
+        <small id="mission-lan-sub">同步数据链</small>
+      </div>
+
       <div class="mission-overlay" id="mission-briefing">
         <div class="briefing-shell">
           <div class="briefing-rail"><span>BLACK SKY</span><i></i><b>01</b></div>
           <div class="briefing-main">
             <span class="eyebrow">MISSION BRIEFING / 作战简报</span>
             <h2>拦截敌方编队</h2>
-            <p class="briefing-lead">敌方突击编队正在穿越我方空域。驾驶战机升空拦截，在时限内击落全部六架敌机。小心敌方追踪导弹——保持机动，必要时释放热诱弹。</p>
+            <p class="briefing-lead">敌方突击编队正在穿越我方空域。驾驶战机升空拦截，在时限内击落全部六架敌机。云层可以隐蔽你的行踪、干扰敌方锁定；导弹既可锁定后发射，也可以先发射再完成制导。</p>
             <div class="briefing-objectives">
               <div><span>任务目标</span><b>击落 06 架敌机</b></div>
               <div><span>行动时限</span><b>03:00</b></div>
@@ -476,7 +588,7 @@
               </div>
               <div class="briefing-control-group">
                 <span>WEAPONS</span>
-                <p><kbd>SPACE</kbd> 机炮 <kbd>F</kbd> 追踪导弹 <kbd>C</kbd> 热诱弹</p>
+                <p><kbd>SPACE</kbd> 机炮 <kbd>F</kbd> 追踪导弹（可先发射再制导） <kbd>C</kbd> 热诱弹</p>
               </div>
             </div>
             <div class="briefing-actions">
@@ -488,7 +600,8 @@
             <div class="briefing-emblem"><span>06</span><b>TARGETS</b></div>
             <ul>
               <li><i></i> 机炮：无限弹药，近距离压制</li>
-              <li><i></i> 导弹：锁定后发射，自动追踪</li>
+              <li><i></i> 导弹：可先发射，再锁定目标完成制导</li>
+              <li><i></i> 云层：遮蔽行踪，干扰敌方雷达与导弹</li>
               <li><i></i> 诱弹：欺骗来袭导弹</li>
               <li><i></i> 大幅机动：摆脱近距离锁定</li>
             </ul>

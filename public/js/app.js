@@ -74,6 +74,8 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+const TAU = Math.PI * 2;
+
 const localLoadout = safeRead(STORAGE.loadout, {});
 
 const state = {
@@ -94,6 +96,18 @@ const state = {
   missionMessageTimer: null,
   missionKillTimer: null,
   missionHudSnapshot: null,
+  air3d: {
+    selectedMode: 'coop',
+    code: null,
+    room: null,
+    slot: null,
+    mode: null,
+    waiting: false,
+    mission: null,
+    active: false,
+    countdownTimer: null,
+    resultSent: false
+  },
   duel: {
     code: null,
     slot: null,
@@ -110,7 +124,9 @@ const state = {
   easterClicks: 0,
   easterTimer: null,
   leaderboardSeq: 0,
-  toastTimers: new Set()
+  toastTimers: new Set(),
+  radarContacts: [],
+  radarRaf: null
 };
 
 const dom = {};
@@ -227,6 +243,7 @@ function cacheDom() {
   dom.missionPauseBtn = $('#mission-pause-btn');
   dom.missionTimer = $('#mission-timer');
   dom.missionKills = $('#mission-kills');
+  dom.missionKillcountWrap = $('.mission-killcount');
   dom.missionRequired = $('#mission-required');
   dom.missionSpeed = $('#mission-speed');
   dom.missionAlt = $('#mission-alt');
@@ -258,6 +275,8 @@ function cacheDom() {
   dom.missileWarningSub = $('#missile-warning-sub');
   dom.missionDamageVignette = $('#mission-damage-vignette');
   dom.missionHitFlash = $('#mission-hit-flash');
+  dom.missionCloudOverlay = $('#mission-cloud-overlay');
+  dom.missionCoverBadge = $('#mission-cover-badge');
   dom.missionBriefing = $('#mission-briefing');
   dom.missionBriefPlane = $('#mission-brief-plane');
   dom.missionStartBtn = $('#mission-start-btn');
@@ -280,6 +299,37 @@ function cacheDom() {
   dom.missionStickKnob = $('#mission-stick-knob');
   dom.missionActionButtons = $$('[data-mission-action]');
   dom.missionRadarCtx = dom.missionRadar?.getContext('2d');
+  dom.missionPvpBanner = $('#mission-pvp-banner');
+  dom.missionPvpSelfName = $('#mission-pvp-self-name');
+  dom.missionPvpSelfHp = $('#mission-pvp-self-hp');
+  dom.missionPvpFoeHp = $('#mission-pvp-foe-hp');
+  dom.missionPvpFoeName = $('#mission-pvp-foe-name');
+  dom.missionWingmanBadge = $('#mission-wingman-badge');
+  dom.missionWingmanName = $('#mission-wingman-name');
+  dom.missionLanCountdown = $('#mission-lan-countdown');
+  dom.missionLanMode = $('#mission-lan-mode');
+  dom.missionLanCount = $('#mission-lan-count');
+  dom.missionLanSub = $('#mission-lan-sub');
+
+  dom.air3dScreen = $('#screen-air3d');
+  dom.air3dOnline = $('#air3d-online');
+  dom.air3dLobby = $('#air3d-lobby');
+  dom.air3dWaiting = $('#air3d-waiting');
+  dom.air3dCreateBtn = $('#air3d-create-btn');
+  dom.air3dJoinForm = $('#air3d-join-form');
+  dom.air3dRoomCode = $('#air3d-room-code');
+  dom.air3dNetworkList = $('#air3d-network-list');
+  dom.air3dPlaneName = $('#air3d-plane-name');
+  dom.air3dSkinName = $('#air3d-skin-name');
+  dom.air3dWaitingCode = $('#air3d-waiting-code');
+  dom.air3dWaitingTitle = $('#air3d-waiting-title');
+  dom.air3dWaitingEyebrow = $('#air3d-waiting-eyebrow');
+  dom.air3dWaitingMode = $('#air3d-waiting-mode');
+  dom.air3dHostName = $('#air3d-host-name');
+  dom.air3dGuestSlot = $('#air3d-guest-slot');
+  dom.air3dCopyBtn = $('#air3d-copy-btn');
+  dom.air3dCancelBtn = $('#air3d-cancel-btn');
+  dom.air3dModeButtons = $$('[data-air3d-mode]');
 }
 
 let menuScene;
@@ -402,6 +452,24 @@ function bindEvents() {
   });
   bindMissionControls();
 
+  dom.air3dModeButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      state.air3d.selectedMode = button.dataset.air3dMode === 'pvp' ? 'pvp' : 'coop';
+      dom.air3dModeButtons.forEach((item) => item.classList.toggle('is-active', item === button));
+      updateAir3DLobbyMode();
+    });
+  });
+  dom.air3dCreateBtn.addEventListener('click', createAir3DRoom);
+  dom.air3dJoinForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    joinAir3DRoom(dom.air3dRoomCode.value.trim().toUpperCase());
+  });
+  dom.air3dRoomCode.addEventListener('input', () => {
+    dom.air3dRoomCode.value = dom.air3dRoomCode.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+  });
+  dom.air3dCancelBtn.addEventListener('click', cancelAir3DRoom);
+  dom.air3dCopyBtn.addEventListener('click', copyAir3DInvite);
+
   dom.planeList.addEventListener('click', (event) => {
     const card = event.target.closest('[data-plane]');
     if (card) selectPlane(card.dataset.plane);
@@ -444,7 +512,7 @@ function bindEvents() {
       const modalVisible = !dom.pauseModal.hidden || !dom.resultModal.hidden;
       if (!modalVisible && state.game.phase === 'playing') requestPause();
     }
-    if (document.hidden && state.mission && !state.mission.paused && state.mission.state === 'playing' && dom.missionPause.hidden) {
+    if (document.hidden && state.mission && !state.air3d.active && !state.mission.paused && state.mission.state === 'playing' && dom.missionPause.hidden) {
       openMissionPause();
     }
   });
@@ -481,6 +549,9 @@ function onDocumentClick(event) {
       break;
     case 'play-mission3d':
       openMission3D();
+      break;
+    case 'air3d':
+      openAir3DLobby();
       break;
     case 'hangar':
       openHangar();
@@ -541,12 +612,347 @@ function showScreen(name) {
       renderDuelLobby();
       loadNetwork();
     }
+    if (name === 'air3d') {
+      updateAir3DLobbyMode();
+      renderAir3DLobby();
+      loadAir3DNetwork();
+    }
   }
+}
+
+function openAir3DLobby() {
+  hideAllModals();
+  cleanupSingleGame();
+  if (state.duel.game) leaveDuelCompletely();
+  cleanupAir3D();
+  showScreen('air3d');
+  updateAir3DLobbyMode();
+  renderAir3DLobby();
+  loadAir3DNetwork();
+}
+
+function updateAir3DLobbyMode() {
+  const pvp = state.air3d.selectedMode === 'pvp';
+  dom.air3dModeButtons.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.air3dMode === state.air3d.selectedMode);
+  });
+  dom.air3dCreateBtn.querySelector('span').textContent = pvp ? '创建 3D 对决房间' : '创建编队房间';
+  dom.air3dCreateBtn.querySelector('small').textContent = pvp ? 'PVP HOST' : 'CO-OP HOST';
+  dom.air3dWaitingMode.textContent = pvp ? 'PVP · 3D 王牌对决' : 'CO-OP · 双机编队';
+  dom.air3dWaitingTitle.textContent = pvp ? '等待对手接入' : '等待僚机接入';
+  dom.air3dWaitingEyebrow.textContent = pvp ? 'WAITING FOR OPPONENT' : 'WAITING FOR WINGMAN';
+  dom.air3dGuestSlot.querySelector('small').textContent = pvp ? '挑战者' : '僚机';
+  const plane = getPlane(state.selectedPlane);
+  const skin = getSkin(state.selectedSkin);
+  dom.air3dPlaneName.textContent = plane.name;
+  dom.air3dSkinName.textContent = `${skin.name} · ${plane.role}`;
+}
+
+function renderAir3DLobby() {
+  if (state.air3d.waiting && state.air3d.code) {
+    dom.air3dLobby.hidden = true;
+    dom.air3dWaiting.hidden = false;
+    dom.air3dWaitingCode.textContent = state.air3d.code;
+    dom.air3dWaitingMode.textContent = state.air3d.mode === 'pvp' ? 'PVP · 3D 王牌对决' : 'CO-OP · 双机编队';
+    dom.air3dHostName.textContent = state.user?.username || state.guestName;
+    const guest = state.air3d.room?.players?.find((player) => player.slot !== state.air3d.slot);
+    if (guest) {
+      dom.air3dGuestSlot.classList.add('filled');
+      dom.air3dGuestSlot.querySelector('b').textContent = guest.name;
+      dom.air3dGuestSlot.querySelector('small').textContent = getPlane(guest.plane).name;
+    } else {
+      dom.air3dGuestSlot.classList.remove('filled');
+      dom.air3dGuestSlot.querySelector('b').textContent = '等待接入...';
+      dom.air3dGuestSlot.querySelector('small').textContent = state.air3d.mode === 'pvp' ? '挑战者' : '僚机';
+    }
+  } else {
+    dom.air3dLobby.hidden = false;
+    dom.air3dWaiting.hidden = true;
+  }
+}
+
+async function loadAir3DNetwork() {
+  if (!state.network) {
+    try {
+      state.network = await api.network();
+    } catch {
+      state.network = { urls: [window.location.origin] };
+    }
+  }
+  const urls = [...new Set([...(state.network.urls || []), window.location.origin])].filter(Boolean);
+  dom.air3dNetworkList.innerHTML = urls.map((url) => `
+    <div class="network-url"><span>${escapeHtml(url)}</span><button type="button" data-air3d-copy="${escapeHtml(url)}">复制</button></div>
+  `).join('');
+  dom.air3dNetworkList.querySelectorAll('[data-air3d-copy]').forEach((button) => {
+    button.addEventListener('click', () => copyText(button.dataset.air3dCopy, '接入地址已复制'));
+  });
+}
+
+function createAir3DRoom() {
+  if (!ensureSocket()) return;
+  audio.init();
+  state.socket.emit('air3d:create', { mode: state.air3d.selectedMode, ...getProfilePayload() }, (result) => {
+    if (!result?.ok) {
+      toast(result?.error || '创建 3D 房间失败。', 'error');
+      return;
+    }
+    state.air3d.code = result.code;
+    state.air3d.mode = result.mode;
+    state.air3d.slot = result.slot;
+    state.air3d.room = result.room;
+    state.air3d.waiting = true;
+    renderAir3DLobby();
+    toast(result.mode === 'pvp' ? `3D 对决房间 ${result.code} 已建立。` : `编队房间 ${result.code} 已建立。`);
+  });
+}
+
+function joinAir3DRoom(code) {
+  if (!code || code.length < 4) {
+    toast('请输入 5 位房间码。', 'error');
+    return;
+  }
+  if (!ensureSocket()) return;
+  audio.init();
+  state.socket.emit('air3d:join', { code, ...getProfilePayload() }, (result) => {
+    if (!result?.ok) {
+      toast(result?.error || '接入 3D 房间失败。', 'error');
+      return;
+    }
+    state.air3d.code = result.code;
+    state.air3d.mode = result.mode;
+    state.air3d.slot = result.slot;
+    state.air3d.room = result.room;
+    state.air3d.waiting = false;
+    toast('已接入 3D 战场，正在同步数据链...');
+  });
+}
+
+function cancelAir3DRoom() {
+  state.socket?.emit('air3d:leave');
+  resetAir3DState();
+  renderAir3DLobby();
+  toast('3D 房间已关闭。');
+}
+
+function copyAir3DInvite() {
+  const url = new URL(window.location.href);
+  url.searchParams.set('air3d', state.air3d.code || '');
+  copyText(`${url.toString()}  房间码：${state.air3d.code}`, '3D 邀请链接已复制');
+}
+
+function resetAir3DState() {
+  clearAir3DCountdown();
+  if (state.air3d.mission) {
+    state.air3d.mission.destroy();
+    state.air3d.mission = null;
+  }
+  if (state.mission && state.mission.network) state.mission = null;
+  state.air3d.code = null;
+  state.air3d.room = null;
+  state.air3d.slot = null;
+  state.air3d.mode = null;
+  state.air3d.waiting = false;
+  state.air3d.active = false;
+  state.air3d.resultSent = false;
+}
+
+function cleanupAir3D() {
+  state.socket?.emit('air3d:leave');
+  stopRadarLoop();
+  resetAir3DState();
+  if (dom.missionLanCountdown) dom.missionLanCountdown.hidden = true;
+}
+
+function clearAir3DCountdown() {
+  if (state.air3d.countdownTimer) {
+    clearInterval(state.air3d.countdownTimer);
+    state.air3d.countdownTimer = null;
+  }
+}
+
+function prepareAir3DMatch(payload) {
+  if (!payload) return;
+  cleanupSingleGame();
+  cleanupMission3D();
+  const slot = state.air3d.slot == null ? 0 : state.air3d.slot;
+  const opponent = payload.players?.find((player) => player.slot !== slot) || {
+    name: 'WINGMAN',
+    plane: 'falcon',
+    skin: 'chrome'
+  };
+  state.air3d.active = true;
+  state.air3d.resultSent = false;
+  state.air3d.mode = payload.mode;
+  state.air3d.room = payload;
+  state.air3d.waiting = false;
+  showScreen('mission3d');
+
+  const oldCanvas = dom.missionCanvas;
+  const freshCanvas = oldCanvas.cloneNode(false);
+  oldCanvas.replaceWith(freshCanvas);
+  dom.missionCanvas = freshCanvas;
+
+  dom.missionBriefing.hidden = true;
+  dom.missionPause.hidden = true;
+  dom.missionEnd.hidden = true;
+  dom.missionHud.hidden = true;
+  dom.missionMessage.hidden = true;
+  dom.missileWarning.hidden = true;
+  dom.missionTargetMarker.hidden = true;
+  dom.missionKillfeed.innerHTML = '';
+  dom.missionCloudOverlay.style.opacity = '0';
+  dom.missionCoverBadge.hidden = true;
+  dom.missionDamageVignette.classList.remove('on');
+  dom.missionHitFlash.classList.remove('on');
+  dom.missionPvpBanner.hidden = true;
+  dom.missionWingmanBadge.hidden = true;
+  dom.missionKillcountWrap.style.display = '';
+  dom.missionLanMode.textContent = payload.mode === 'pvp' ? '3D DOGFIGHT' : '3D CO-OP';
+  dom.missionLanSub.textContent = payload.mode === 'pvp' ? '同步对手数据' : '同步编队数据链';
+  dom.missionLanCountdown.hidden = false;
+
+  let mission;
+  try {
+    mission = new Mission3D({
+      canvas: dom.missionCanvas,
+      plane: state.selectedPlane,
+      skin: state.selectedSkin,
+      network: {
+        role: slot === 0 ? 'host' : 'guest',
+        mode: payload.mode,
+        opponent
+      },
+      callbacks: {
+        onHud: updateMissionHud,
+        onEvent: handleMissionEvent,
+        onEnd: handleAir3DMissionEnd,
+        onPauseRequest: () => toast('3D 联机对战中无法暂停。', 'error'),
+        onNetworkState: (networkState) => state.socket?.emit('air3d:state', networkState),
+        onNetworkSnapshot: (snapshot) => state.socket?.emit('air3d:snapshot', snapshot),
+        onNetworkEnemyHit: (hit) => state.socket?.emit('air3d:enemyHit', hit),
+        onNetworkPvpHit: (hit) => state.socket?.emit('air3d:pvpHit', hit),
+        onNetworkFx: (fx) => state.socket?.emit('air3d:fx', fx)
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    toast('无法启动 3D 联机渲染，请确认浏览器已启用 WebGL。', 'error', 5000);
+    cleanupAir3D();
+    showScreen('air3d');
+    return;
+  }
+  state.mission = mission;
+  state.air3d.mission = mission;
+  state.missionHudSnapshot = null;
+  startAir3DCountdown(payload.startAt, payload.mode);
+}
+
+function startAir3DCountdown(startAt, mode) {
+  clearAir3DCountdown();
+  const end = Number(startAt) || Date.now() + 3600;
+  let last = null;
+  const tick = () => {
+    const remaining = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+    dom.missionLanCount.textContent = remaining > 0 ? remaining : 'GO';
+    if (remaining !== last && remaining > 0) {
+      last = remaining;
+      audio.countdown(remaining === 1);
+    }
+    if (remaining <= 0) {
+      clearAir3DCountdown();
+    }
+  };
+  tick();
+  state.air3d.countdownTimer = window.setInterval(tick, 100);
+}
+
+function startAir3DMatch() {
+  if (!state.air3d.mission || state.air3d.mission.state !== 'briefing') return;
+  clearAir3DCountdown();
+  dom.missionLanCountdown.hidden = true;
+  dom.missionHud.hidden = false;
+  state.air3d.mission.start();
+  startRadarLoop();
+  audio.init();
+  updateSoundUI();
+}
+
+function handleAir3DMissionEnd(result) {
+  if (!state.air3d.active) {
+    handleMissionEnd(result);
+    return;
+  }
+  if (state.air3d.slot === 0 && !state.air3d.resultSent) {
+    state.air3d.resultSent = true;
+    const guestSuccess = result.networkMode === 'pvp' ? !result.success : result.success;
+    state.socket?.emit('air3d:end', { ...result, guestSuccess });
+  }
+  showAir3DResult(result, result.success);
+}
+
+function handleAir3DEndFromHost(payload) {
+  if (!state.air3d.active) return;
+  const guestResult = { ...payload, success: payload.guestSuccess ?? !payload.success };
+  if (state.air3d.mission) {
+    state.air3d.mission.state = 'ended';
+    state.air3d.mission.paused = false;
+    audio.stopFlightEngine();
+  }
+  showAir3DResult(guestResult, guestResult.success);
+}
+
+function showAir3DResult(result, success) {
+  stopRadarLoop();
+  dom.missionHud.hidden = true;
+  dom.missionPause.hidden = true;
+  dom.missileWarning.hidden = true;
+  dom.missionTargetMarker.hidden = true;
+  dom.missionMessage.hidden = true;
+  dom.missionCloudOverlay.style.opacity = '0';
+  dom.missionCoverBadge.hidden = true;
+  dom.missionPvpBanner.hidden = true;
+  dom.missionWingmanBadge.hidden = true;
+  dom.missionLanCountdown.hidden = true;
+  dom.missionKillcountWrap.style.display = '';
+  dom.missionEnd.hidden = false;
+  dom.missionEnd.classList.toggle('is-success', success);
+  dom.missionEnd.classList.toggle('is-failure', !success);
+  const pvp = Boolean(result.pvp);
+  dom.missionEndEyebrow.textContent = pvp ? (success ? 'DOGFIGHT VICTORY' : 'DOGFIGHT DEFEAT') : (success ? 'FORMATION COMPLETE' : 'FORMATION LOST');
+  dom.missionEndMark.innerHTML = `<span>${success ? '✓' : '×'}</span>`;
+  dom.missionEndTitle.textContent = pvp ? (success ? '对决胜利' : '对决失利') : (success ? '编队任务完成' : '编队任务失败');
+  dom.missionEndSubtitle.textContent = pvp
+    ? (success ? '你赢下了这场 3D 王牌对决。' : '对手赢下了这次交锋。调整机体与战术再来。')
+    : (success ? '双机编队完成空域清理，敌方编队全灭。' : '编队任务失败。与僚机重新规划进攻路线。');
+  const pvpSelfHp = state.air3d.slot === 0 ? result.pvpHostHp ?? result.hp : result.pvpGuestHp ?? 0;
+  dom.missionEndGrid.innerHTML = `
+    <div class="mission-end-stat"><span>SCORE</span><b>${formatNumber(result.score)}</b></div>
+    <div class="mission-end-stat"><span>${pvp ? '结构值' : '击落'}</span><b>${pvp ? `${pvpSelfHp}%` : `${result.kills} / ${result.required || 6}`}</b></div>
+    <div class="mission-end-stat"><span>剩余时间</span><b>${formatTime(result.timeLeft)}</b></div>
+    <div class="mission-end-stat"><span>命中率</span><b>${Math.round((result.accuracy || 0) * 100)}%</b></div>
+  `;
+  dom.missionEndExtra.innerHTML = `
+    <span>${result.networkMode === 'pvp' ? '3D DOGFIGHT' : 'CO-OP SORTIE'}</span>
+    <i></i>
+    <span>僚机/对手：${escapeHtml(state.air3d.room?.players?.find((player) => player.slot !== state.air3d.slot)?.name || '未知')}</span>
+  `;
+  dom.missionEndActions.innerHTML = '';
+  const lobby = makeActionButton('返回 3D 大厅', 'LAN LOBBY', true, () => {
+    cleanupAir3D();
+    openAir3DLobby();
+  });
+  const home = makeActionButton('返回基地', 'HOME', false, () => {
+    cleanupAir3D();
+    goHome();
+  });
+  dom.missionEndActions.append(lobby, home);
+  audio.stopFlightEngine();
 }
 
 function goHome() {
   hideAllModals();
   cleanupSingleGame();
+  cleanupAir3D();
   cleanupMission3D();
   if (state.duel.game) {
     leaveDuelCompletely();
@@ -606,9 +1012,11 @@ async function refreshOnline() {
     const count = data.online || 0;
     dom.onlineCount.textContent = count;
     dom.duelOnline.textContent = count;
+    dom.air3dOnline.textContent = count;
   } catch {
     dom.onlineCount.textContent = '--';
     dom.duelOnline.textContent = '--';
+    dom.air3dOnline.textContent = '--';
   }
 }
 
@@ -1029,6 +1437,18 @@ function registerEasterClick() {
 
 function handleInviteFromUrl() {
   const params = new URLSearchParams(window.location.search);
+  const air3dCode = params.get('air3d');
+  if (air3dCode) {
+    const normalized = air3dCode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+    if (normalized) {
+      window.setTimeout(() => {
+        openAir3DLobby();
+        dom.air3dRoomCode.value = normalized;
+        toast(`已载入 3D 邀请房间 ${normalized}，确认后接入数据链。`, 'info', 4500);
+      }, 650);
+      return;
+    }
+  }
   const code = params.get('duel');
   if (!code) return;
   const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
@@ -1225,6 +1645,9 @@ function initSocket() {
     if (state.duel.game) {
       toast('与对战服务器的连接中断。', 'error', 5000);
     }
+    if (state.air3d.active) {
+      toast('与 3D 战场服务器的连接中断。', 'error', 5000);
+    }
   });
 
   socket.on('duel:matched', (payload) => {
@@ -1311,6 +1734,66 @@ function initSocket() {
     toast(payload?.message || '对手已离开战场。', 'error', 4000);
     showScreen('duel');
     audio.startAmbience('menu');
+  });
+
+  socket.on('air3d:matched', (payload) => {
+    if (!payload) return;
+    state.air3d.code = payload.code;
+    state.air3d.mode = payload.mode;
+    state.air3d.room = payload;
+    state.air3d.waiting = false;
+    if (state.air3d.slot == null) {
+      const selfName = state.user?.username || state.guestName;
+      const own = payload.players?.find((player) => player.name === selfName);
+      state.air3d.slot = own?.slot ?? 0;
+    }
+    dom.air3dWaiting.hidden = true;
+    dom.air3dLobby.hidden = true;
+    prepareAir3DMatch(payload);
+  });
+
+  socket.on('air3d:go', () => {
+    startAir3DMatch();
+  });
+
+  socket.on('air3d:state', (payload) => {
+    state.air3d.mission?.setRemotePlayerState(payload);
+  });
+
+  socket.on('air3d:snapshot', (payload) => {
+    state.air3d.mission?.applyNetworkSnapshot(payload);
+  });
+
+  socket.on('air3d:enemyHit', (payload) => {
+    state.air3d.mission?.applyNetworkEnemyHit(payload?.id, Number(payload?.damage) || 0);
+  });
+
+  socket.on('air3d:pvpHit', (payload) => {
+    state.air3d.mission?.applyNetworkPvpHit(Number(payload?.damage) || 0);
+  });
+
+  socket.on('air3d:fx', (payload) => {
+    state.air3d.mission?.addNetworkFx(payload);
+  });
+
+  socket.on('air3d:end', (payload) => {
+    handleAir3DEndFromHost(payload || {});
+  });
+
+  socket.on('air3d:opponentleft', (payload) => {
+    const wasActive = state.air3d.active;
+    clearAir3DCountdown();
+    resetAir3DState();
+    hideAllModals();
+    toast(payload?.message || '联机队友已离开 3D 战场。', 'error', 4000);
+    if (wasActive) {
+      showScreen('air3d');
+      renderAir3DLobby();
+      audio.startAmbience('menu');
+    } else {
+      dom.air3dLobby.hidden = false;
+      dom.air3dWaiting.hidden = true;
+    }
   });
 }
 
@@ -1579,6 +2062,12 @@ function openMission3D({ autoStart = false } = {}) {
   dom.missionKillfeed.innerHTML = '';
   dom.missionDamageVignette.classList.remove('on');
   dom.missionHitFlash.classList.remove('on');
+  dom.missionCloudOverlay.style.opacity = '0';
+  dom.missionCoverBadge.hidden = true;
+  dom.missionPvpBanner.hidden = true;
+  dom.missionWingmanBadge.hidden = true;
+  dom.missionKillcountWrap.style.display = '';
+  dom.missionLanCountdown.hidden = true;
   dom.missionTargetMarker.classList.remove('is-locked', 'is-in-reticle');
 
   const plane = getPlane(state.selectedPlane);
@@ -1599,7 +2088,7 @@ function openMission3D({ autoStart = false } = {}) {
   dom.missionBoost.textContent = '100';
   dom.missionLockStatus.textContent = 'NO TARGET';
   dom.missionLockFill.style.width = '0%';
-  dom.missionLockHint.textContent = '将目标保持在准星内完成锁定';
+  dom.missionLockHint.textContent = '将目标保持在准星内锁定，或先发射导弹再制导';
   dom.missionCrosshair.classList.remove('is-locked', 'hit');
   dom.missionRadarCount.textContent = '4 CONTACTS';
 
@@ -1637,10 +2126,12 @@ function startMission3D() {
   dom.missionEnd.hidden = true;
   dom.missionPause.hidden = true;
   state.mission.start();
+  startRadarLoop();
   updateSoundUI();
 }
 
 function cleanupMission3D() {
+  stopRadarLoop();
   if (state.mission) {
     state.mission.destroy();
     state.mission = null;
@@ -1661,10 +2152,20 @@ function cleanupMission3D() {
   dom.missionKillfeed.innerHTML = '';
   dom.missionDamageVignette.classList.remove('on');
   dom.missionHitFlash.classList.remove('on');
+  dom.missionCloudOverlay.style.opacity = '0';
+  dom.missionCoverBadge.hidden = true;
+  dom.missionPvpBanner.hidden = true;
+  dom.missionWingmanBadge.hidden = true;
+  dom.missionKillcountWrap.style.display = '';
+  dom.missionLanCountdown.hidden = true;
   dom.missionActionButtons.forEach((button) => button.classList.remove('is-pressed'));
 }
 
 function openMissionPause() {
+  if (state.air3d.active) {
+    toast('3D 联机对战中无法暂停。', 'error');
+    return;
+  }
   const mission = state.mission;
   if (!mission || mission.state !== 'playing' || mission.paused) return;
   mission.pause();
@@ -1809,7 +2310,7 @@ function updateMissionHud(snapshot) {
 
   if (!lock?.active) {
     dom.missionLockStatus.textContent = 'NO TARGET';
-    dom.missionLockHint.textContent = '将目标保持在准星内完成锁定';
+    dom.missionLockHint.textContent = '将目标保持在准星内锁定，或先发射导弹再制导';
     dom.missionLockFill.style.width = '0%';
     dom.missionCrosshair.classList.remove('is-locked', 'is-locking');
   } else if (lock.locked) {
@@ -1840,27 +2341,105 @@ function updateMissionHud(snapshot) {
     dom.missileWarning.classList.remove('is-intense', 'is-locking');
   }
 
+  const cloudCover = clamp(Number(snapshot.cloud) || 0, 0, 1);
+  dom.missionCloudOverlay.style.opacity = String(cloudCover * 0.56);
+  dom.missionCoverBadge.hidden = cloudCover < 0.28;
+
+  const pvp = Boolean(snapshot.pvp);
+  dom.missionPvpBanner.hidden = !pvp;
+  dom.missionKillcountWrap.style.display = pvp ? 'none' : '';
+  if (pvp) {
+    dom.missionPvpSelfName.textContent = state.user?.username || state.guestName;
+    dom.missionPvpFoeName.textContent = snapshot.pvp.foeName || '对手';
+    dom.missionPvpSelfHp.textContent = snapshot.pvp.selfHp;
+    dom.missionPvpFoeHp.textContent = snapshot.pvp.foeHp;
+  }
+  const coopNetwork = snapshot.network?.mode === 'coop';
+  dom.missionWingmanBadge.hidden = !coopNetwork;
+  if (coopNetwork) {
+    dom.missionWingmanName.textContent = snapshot.network.allyName || '僚机';
+  }
+
   dom.missionCrosshair.classList.toggle('hit', Boolean(snapshot.hitMarker));
-  dom.missionRadarCount.textContent = `${snapshot.contacts?.length || 0} CONTACTS`;
-  drawMissionRadar(snapshot.contacts || []);
+  state.radarContacts = snapshot.contacts || [];
+  dom.missionRadarCount.textContent = `${state.radarContacts.length} CONTACTS`;
+  drawMissionRadar(state.radarContacts, performance.now());
+  if (!dom.missionHud.hidden) startRadarLoop();
 }
 
-function drawMissionRadar(contacts) {
+function startRadarLoop() {
+  if (state.radarRaf) return;
+  const frame = (timestamp) => {
+    if (!state.mission || state.currentScreen !== 'mission3d') {
+      state.radarRaf = null;
+      return;
+    }
+    drawMissionRadar(state.radarContacts, timestamp);
+    state.radarRaf = requestAnimationFrame(frame);
+  };
+  state.radarRaf = requestAnimationFrame(frame);
+}
+
+function stopRadarLoop() {
+  if (state.radarRaf) cancelAnimationFrame(state.radarRaf);
+  state.radarRaf = null;
+}
+
+function drawMissionRadar(contacts = [], timestamp = performance.now()) {
+  const canvas = dom.missionRadar;
   const ctx = dom.missionRadarCtx;
-  if (!ctx) return;
+  if (!ctx || !canvas) return;
   const size = 180;
   const center = size / 2;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (canvas.width !== size * dpr) {
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, size, size);
+
   const bg = ctx.createRadialGradient(center, center, 5, center, center, center);
-  bg.addColorStop(0, 'rgba(17, 47, 58, 0.6)');
-  bg.addColorStop(1, 'rgba(2, 10, 15, 0.08)');
+  bg.addColorStop(0, 'rgba(15, 46, 57, 0.62)');
+  bg.addColorStop(0.62, 'rgba(8, 28, 38, 0.36)');
+  bg.addColorStop(1, 'rgba(2, 10, 15, 0.12)');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, size, size);
-  ctx.strokeStyle = 'rgba(87, 229, 255, 0.14)';
+
+  const sweep = ((timestamp / 2700) % 1) * TAU;
+  const sweepX = Math.sin(sweep);
+  const sweepY = -Math.cos(sweep);
+  const glow = ctx.createRadialGradient(center, center, 2, center, center, 84);
+  glow.addColorStop(0, 'rgba(87, 229, 255, 0.06)');
+  glow.addColorStop(1, 'rgba(87, 229, 255, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(center, center, 84, 0, TAU);
+  ctx.fill();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(center, center);
+  ctx.arc(center, center, 82, -Math.PI / 2 + sweep - 0.54, -Math.PI / 2 + sweep);
+  ctx.closePath();
+  const wedge = ctx.createLinearGradient(center, center, center + sweepX * 82, center + sweepY * 82);
+  wedge.addColorStop(0, 'rgba(87, 229, 255, 0.015)');
+  wedge.addColorStop(1, 'rgba(87, 229, 255, 0.13)');
+  ctx.fillStyle = wedge;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(center, center);
+  ctx.lineTo(center + sweepX * 82, center + sweepY * 82);
+  ctx.strokeStyle = 'rgba(128, 241, 255, 0.55)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.strokeStyle = 'rgba(87, 229, 255, 0.13)';
   ctx.lineWidth = 1;
   for (const radius of [26, 52, 78]) {
     ctx.beginPath();
-    ctx.arc(center, center, radius, 0, Math.PI * 2);
+    ctx.arc(center, center, radius, 0, TAU);
     ctx.stroke();
   }
   ctx.beginPath();
@@ -1868,27 +2447,80 @@ function drawMissionRadar(contacts) {
   ctx.lineTo(center, size - 8);
   ctx.moveTo(8, center);
   ctx.lineTo(size - 8, center);
-  ctx.strokeStyle = 'rgba(87, 229, 255, 0.08)';
+  ctx.strokeStyle = 'rgba(87, 229, 255, 0.065)';
   ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(center, center);
-  ctx.lineTo(center, 18);
-  ctx.strokeStyle = 'rgba(87, 229, 255, 0.45)';
-  ctx.lineWidth = 1.4;
-  ctx.stroke();
+
+  for (let i = 0; i < 12; i += 1) {
+    const angle = (i / 12) * TAU;
+    const inner = i % 3 === 0 ? 76 : 80;
+    ctx.beginPath();
+    ctx.moveTo(center + Math.sin(angle) * inner, center - Math.cos(angle) * inner);
+    ctx.lineTo(center + Math.sin(angle) * 84, center - Math.cos(angle) * 84);
+    ctx.strokeStyle = i % 3 === 0 ? 'rgba(128, 226, 247, 0.3)' : 'rgba(87, 229, 255, 0.12)';
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(150, 226, 244, 0.48)';
+  ctx.font = '5px "Bahnschrift", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('1.2', center, center - 42);
+  ctx.fillText('2.4', center, center - 68);
+
   for (const contact of contacts) {
     const x = center + contact.x * 72;
     const y = center + contact.y * 72;
-    ctx.beginPath();
+    const contactAngle = (Math.atan2(contact.x, -contact.y) + TAU) % TAU;
+    let delta = (sweep - contactAngle + TAU) % TAU;
+    const trail = delta < 1.75 ? 1 - delta / 1.75 : 0;
+    const isAlly = contact.type === 'ally';
+    const color = contact.target ? '#ffcf5b' : isAlly ? '#6bffb8' : '#ff5f79';
+    const alpha = 0.25 + trail * 0.75;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 5 + trail * 7;
+    ctx.fillStyle = color;
     if (contact.target) {
-      ctx.rect(x - 4, y - 4, 8, 8);
-      ctx.fillStyle = '#ffcf5b';
+      ctx.fillRect(x - 3.5, y - 3.5, 7, 7);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - 5.5, y - 5.5, 11, 11);
+    } else if (isAlly) {
+      ctx.beginPath();
+      ctx.moveTo(x, y - 4);
+      ctx.lineTo(x + 4, y);
+      ctx.lineTo(x, y + 4);
+      ctx.lineTo(x - 4, y);
+      ctx.closePath();
+      ctx.fill();
     } else {
-      ctx.arc(x, y, 2.4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 95, 117, 0.9)';
+      ctx.beginPath();
+      ctx.arc(x, y, 2.4, 0, TAU);
+      ctx.fill();
+      if (trail > 0.3) {
+        ctx.beginPath();
+        ctx.arc(x, y, 2.4 + (1 - trail) * 6, 0, TAU);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+      }
     }
-    ctx.fill();
+    ctx.restore();
   }
+
+  ctx.save();
+  ctx.translate(center, center);
+  ctx.beginPath();
+  ctx.moveTo(0, -7);
+  ctx.lineTo(4.6, 6);
+  ctx.lineTo(0, 3);
+  ctx.lineTo(-4.6, 6);
+  ctx.closePath();
+  ctx.fillStyle = '#e8fcff';
+  ctx.shadowColor = '#57e5ff';
+  ctx.shadowBlur = 6;
+  ctx.fill();
+  ctx.restore();
 }
 
 function handleMissionEvent(event) {
@@ -1939,12 +2571,18 @@ function addMissionKill(text, score = 0) {
 
 function handleMissionEnd(result) {
   if (!result) return;
+  stopRadarLoop();
   state.missionResult = result;
   dom.missionHud.hidden = true;
   dom.missionPause.hidden = true;
   dom.missileWarning.hidden = true;
   dom.missionTargetMarker.hidden = true;
   dom.missionMessage.hidden = true;
+  dom.missionCloudOverlay.style.opacity = '0';
+  dom.missionCoverBadge.hidden = true;
+  dom.missionPvpBanner.hidden = true;
+  dom.missionWingmanBadge.hidden = true;
+  dom.missionKillcountWrap.style.display = '';
   dom.missionEnd.hidden = false;
   dom.missionEnd.classList.toggle('is-success', result.success);
   dom.missionEnd.classList.toggle('is-failure', !result.success);
@@ -2282,9 +2920,12 @@ function toast(message, type = 'info', duration = 3000) {
 
 window.addEventListener('beforeunload', () => {
   state.socket?.emit('duel:leave');
+  state.socket?.emit('air3d:leave');
   state.game?.destroy();
   state.duel.game?.destroy();
-  state.mission?.destroy();
+  const air3dMission = state.air3d.mission;
+  air3dMission?.destroy();
+  if (state.mission !== air3dMission) state.mission?.destroy();
   clearInterval(onlineTimer);
 });
 
