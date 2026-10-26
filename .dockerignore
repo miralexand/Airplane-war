@@ -1,0 +1,9 @@
+node_modules
+data
+.git
+.gitignore
+.env
+*.log
+.smoke*.mjs
+.smoke*.log
+legacy

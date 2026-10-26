@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#050810" />
+  <meta name="description" content="SKY//STRIKE 苍穹突击：浏览器 3D 街机空战。机炮、追踪导弹锁定、热诱弹反制、限时拦截任务与局域网对决。" />
+  <title>SKY//STRIKE · 苍穹突击 · 3D 街机空战</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2357e5ff' d='M32 4 41 27 60 35 41 38 32 60 23 38 4 35 23 27z'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/mission.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="menu-canvas" aria-hidden="true"></canvas>
+  <div class="ambient-glow" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="topbar" id="topbar">
+    <button class="brand" id="brand" aria-label="SKY STRIKE 主页">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48"><path d="M24 3 31 20 45 25 31 29 24 45 17 29 3 25 17 20Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m24 11 3.8 10.2L38 24l-10.2 2.8L24 37l-3.8-10.2L10 24l10.2-2.8Z" fill="currentColor" opacity=".22"/></svg>
+      </span>
+      <span class="brand-text">
+        <strong>SKY<span>//</span>STRIKE</strong>
+        <small>苍穹突击 · 联合空战计划</small>
+      </span>
+    </button>
+
+    <div class="top-actions">
+      <div class="online-pill" title="当前在线飞行员">
+        <i></i><span id="online-count">--</span><em>ONLINE</em>
+      </div>
+      <button class="icon-btn" id="sound-btn" aria-label="切换声音" title="声音">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path class="sound-wave" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/></svg>
+      </button>
+      <button class="player-chip" id="profile-btn" aria-label="飞行员账户">
+        <span class="avatar" id="avatar">G</span>
+        <span class="player-meta"><b id="player-name">访客飞行员</b><small id="player-sub">登录以同步战绩</small></span>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m5 6 3 3 3-3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="screens">
+    <section class="screen home-screen is-active" id="screen-home" aria-label="主菜单">
+      <div class="home-grid">
+        <div class="hero-copy">
+          <div class="eyebrow reveal"><span>3D ARCADE AIR COMBAT</span><i></i><span>2049</span></div>
+          <h1 class="hero-title reveal"><span class="title-fill">苍穹</span><span class="title-stroke">突击</span></h1>
+          <div class="hero-en reveal">SKY <span>//</span> STRIKE</div>
+          <p class="hero-lead reveal">云海之上，敌方编队正在逼近。<br />锁定、发射、摆脱导弹——在倒计时归零前击落所有敌机。</p>
+          <div class="hero-actions reveal">
+            <button class="btn btn-primary btn-lg" data-action="play-mission3d">
+              <span>开始任务</span>
+              <small>3D MISSION</small>
+              <i class="btn-shine"></i>
+            </button>
+            <button class="btn btn-ghost btn-lg" data-action="play-endless">
+              <span>经典空战</span>
+              <small>CLASSIC 2D</small>
+            </button>
+          </div>
+          <div class="hero-meta reveal">
+            <div><strong id="home-best">0</strong><span>最高任务分</span></div>
+            <div><strong id="home-stage">0</strong><span>出击次数</span></div>
+            <div><strong id="home-kills">0</strong><span>累计击落</span></div>
+          </div>
+        </div>
+
+        <div class="hero-visual reveal" aria-hidden="true">
+          <div class="orbit orbit-a"></div>
+          <div class="orbit orbit-b"></div>
+          <div class="hero-scan"></div>
+          <canvas id="hero-canvas"></canvas>
+          <div class="ship-tag"><span>FALCON / 01</span><b id="hero-plane-name">苍隼</b></div>
+          <div class="telemetry t1"><span>ALT</span><b>12,480 M</b></div>
+          <div class="telemetry t2"><span>VEL</span><b>MACH 2.7</b></div>
+          <div class="telemetry t3"><span>LINK</span><b class="ok">STABLE</b></div>
+          <div class="retical" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <div class="home-dock reveal">
+        <button class="dock-card" data-action="duel">
+          <span class="dock-icon duel">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="16" r="4"/><circle cx="22" cy="16" r="4"/><path d="M14 16h4M6 26l3-4M26 26l-3-4M6 6l3 4M26 6l-3 4"/></svg>
+          </span>
+          <span class="dock-text"><b>局域网对决</b><small>LAN DUEL · 3 KILLS</small></span>
+          <span class="dock-arrow">↗</span>
+        </button>
+        <button class="dock-card" data-action="hangar">
+          <span class="dock-icon hangar">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M16 4 27 11v10l-11 7L5 21V11Z"/><path d="m16 10 5 4v5l-5 4-5-4v-5Z"/></svg>
+          </span>
+          <span class="dock-text"><b>战备机库</b><small>HANGAR · 4 AIRCRAFT</small></span>
+          <span class="dock-arrow">↗</span>
+        </button>
+        <button class="dock-card" data-action="leaderboard">
+          <span class="dock-icon rank">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 26V14h5v12M19 26V7h5v19M4 26h24"/><path d="M10.5 10 13 8l2 1"/></svg>
+          </span>
+          <span class="dock-text"><b>王牌积分榜</b><small>GLOBAL RANKING</small></span>
+          <span class="dock-arrow">↗</span>
+        </button>
+        <button class="dock-card accent" data-action="redeem">
+          <span class="dock-icon gift">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 13h22v15H5zM3 9h26v4H3zM16 9v19"/><path d="M16 9c-5 0-7-6-2-6 3 0 2 6 2 6ZM16 9c5 0 7-6 2-6-3 0-2 6-2 6Z"/></svg>
+          </span>
+          <span class="dock-text"><b>彩蛋兑换</b><small>REDEEM CODE</small></span>
+          <span class="dock-arrow">↗</span>
+        </button>
+      </div>
+
+      <div class="home-footer">
+        <span><i class="status-dot"></i> 空战网络运行中</span>
+        <span class="hint-desktop">拖动鼠标操控 · SPACE 机炮 · F 导弹 · C 诱弹</span>
+        <span class="hint-mobile">左侧摇杆操控 · 右侧武器按钮</span>
+        <span>v2.0.0 / OPERATION BLACK SKY</span>
+      </div>
+    </section>
+
+    <section class="screen page-screen" id="screen-hangar" aria-label="机库">
+      <div class="page-head">
+        <button class="back-btn" data-action="home" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m14 6-6 6 6 6"/></svg>
+        </button>
+        <div class="page-title">
+          <span class="eyebrow">HANGAR / 战备机库</span>
+          <h2>选择你的<span>天空</span></h2>
+        </div>
+        <div class="currency-pill"><i></i><b id="hangar-credits">0</b><span>星尘</span></div>
+      </div>
+
+      <div class="hangar-layout">
+        <div class="hangar-stage">
+          <div class="hangar-gridlines"></div>
+          <canvas id="hangar-canvas"></canvas>
+          <div class="hangar-plane-title">
+            <span id="hangar-plane-code">FALCON / 01</span>
+            <h3 id="hangar-plane-name">苍隼</h3>
+            <p id="hangar-plane-tagline">风，是最锋利的刃。</p>
+          </div>
+          <div class="hangar-badge" id="hangar-skin-badge">苍穹银</div>
+          <div class="hangar-stats" id="hangar-stats"></div>
+          <button class="launch-btn" id="launch-btn">
+            <span>驾驶此机出击</span><small>LAUNCH</small>
+          </button>
+        </div>
+
+        <aside class="hangar-panel">
+          <div class="panel-section">
+            <div class="section-head"><h3>战斗机</h3><span>4 UNITS</span></div>
+            <div class="plane-list" id="plane-list"></div>
+          </div>
+          <div class="panel-section">
+            <div class="section-head"><h3>涂装</h3><span id="skin-count">6 COATINGS</span></div>
+            <div class="skin-grid" id="skin-grid"></div>
+          </div>
+          <p class="hangar-note">涂装仅改变外观。战机属性会真实影响航速、火力与生存能力。</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen page-screen" id="screen-leaderboard" aria-label="积分榜">
+      <div class="page-head">
+        <button class="back-btn" data-action="home" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m14 6-6 6 6 6"/></svg>
+        </button>
+        <div class="page-title">
+          <span class="eyebrow">ACE ARCHIVE / 王牌档案</span>
+          <h2>天空会记住<span>名字</span></h2>
+        </div>
+        <div class="self-rank" id="self-rank">未上榜</div>
+      </div>
+      <div class="leaderboard-wrap">
+        <div class="leaderboard-tabs">
+          <button class="tab is-active" data-rank-mode="mission">3D 任务</button>
+          <button class="tab" data-rank-mode="endless">无尽积分</button>
+          <button class="tab" data-rank-mode="campaign">远征积分</button>
+          <span class="leaderboard-updated" id="leaderboard-updated"></span>
+        </div>
+        <div class="leaderboard-head">
+          <span>RANK</span><span>飞行员</span><span>战机 / 涂装</span><span>击落</span><span>积分</span>
+        </div>
+        <div class="leaderboard-list" id="leaderboard-list"></div>
+      </div>
+    </section>
+
+    <section class="screen page-screen" id="screen-duel" aria-label="局域网对决">
+      <div class="page-head">
+        <button class="back-btn" data-action="home" aria-label="返回">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m14 6-6 6 6 6"/></svg>
+        </button>
+        <div class="page-title">
+          <span class="eyebrow">LAN COMBAT / 局域网对决</span>
+          <h2>王牌，只留<span>一个</span></h2>
+        </div>
+        <div class="online-pill"><i></i><span id="duel-online">--</span><em>ONLINE</em></div>
+      </div>
+
+      <div class="duel-layout" id="duel-lobby">
+        <div class="duel-card create-card">
+          <span class="eyebrow">HOST A SORTIE</span>
+          <h3>创建对决房间</h3>
+          <p>生成一个 5 位房间码，将它发给同一局域网内的朋友。双方进入后自动开始战斗。</p>
+          <div class="duel-loadout" id="duel-loadout">
+            <span class="mini-ship" id="duel-ship-icon"></span>
+            <div><b id="duel-plane-name">苍隼</b><small id="duel-skin-name">苍穹银</small></div>
+          </div>
+          <button class="btn btn-primary" id="create-room-btn"><span>创建房间</span><small>CREATE ROOM</small></button>
+          <button class="text-btn" id="quick-room-btn">快速匹配一名对手 →</button>
+        </div>
+
+        <div class="duel-card join-card">
+          <span class="eyebrow">JOIN A SORTIE</span>
+          <h3>加入对决</h3>
+          <p>输入朋友发来的房间码。每位飞行员拥有 120 点结构值，率先击落对手 3 次者获胜。</p>
+          <form id="join-room-form" autocomplete="off">
+            <label class="code-label" for="room-code">ROOM CODE</label>
+            <input class="room-code-input" id="room-code" maxlength="5" placeholder="A7K2Q" spellcheck="false" />
+            <button class="btn btn-ghost" type="submit"><span>接入战场</span><small>JOIN</small></button>
+          </form>
+          <div class="duel-rules">
+            <span><b>03</b> 击落目标</span>
+            <span><b>120</b> 结构值</span>
+            <span><b>01</b> 胜者</span>
+          </div>
+        </div>
+
+        <div class="duel-card network-card">
+          <div class="section-head"><h3>局域网接入点</h3><span>LAN ACCESS</span></div>
+          <p>让朋友连接同一个 Wi-Fi，然后打开下面任意地址：</p>
+          <div class="network-list" id="network-list"><span class="skeleton-line"></span></div>
+          <div class="network-note"><i></i> 房间数据通过本机服务器实时同步</div>
+          <div class="duel-howto">
+            <span>01 创建房间</span><span>02 分享地址与房间码</span><span>03 三杀决胜</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="waiting-room" id="waiting-room" hidden>
+        <div class="waiting-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="eyebrow">WAITING FOR WINGMAN</span>
+        <h3>等待对手接入</h3>
+        <div class="room-code-display">
+          <small>ROOM CODE</small>
+          <strong id="waiting-code">-----</strong>
+          <button class="copy-btn" id="copy-room-btn">复制邀请</button>
+        </div>
+        <div class="wingman-slots">
+          <div class="wingman filled" id="host-slot"><span>01</span><b id="host-name">你</b><small>房主</small></div>
+          <div class="wingman" id="guest-slot"><span>02</span><b>等待接入...</b><small>挑战者</small></div>
+        </div>
+        <button class="text-btn danger" id="cancel-room-btn">取消房间</button>
+      </div>
+    </section>
+
+    <section class="screen game-screen" id="screen-game" aria-label="战斗中">
+      <canvas id="game-canvas"></canvas>
+      <div class="game-vignette" aria-hidden="true"></div>
+      <div class="game-hud" id="game-hud">
+        <div class="hud-top">
+          <div class="hud-mode">
+            <button class="hud-pause" id="pause-btn" aria-label="暂停">
+              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            </button>
+            <div><span id="hud-mode-label">ENDLESS SORTIE</span><b id="hud-stage-label">无限战斗</b></div>
+          </div>
+          <div class="hud-score">
+            <span>SCORE</span>
+            <b id="hud-score">0</b>
+            <div class="combo" id="hud-combo">x1.0</div>
+          </div>
+          <div class="hud-right">
+            <div><span>KILLS</span><b id="hud-kills">0</b></div>
+            <div><span>TIME</span><b id="hud-time">00:00</b></div>
+          </div>
+        </div>
+
+        <div class="boss-hud" id="boss-hud" hidden>
+          <div class="boss-meta"><span id="boss-name">虚空母舰</span><b id="boss-hp-text">100%</b></div>
+          <div class="boss-track"><i id="boss-hp-fill"></i></div>
+        </div>
+
+        <div class="pvp-scoreboard" id="pvp-scoreboard" hidden>
+          <div class="pvp-side self"><span id="pvp-self-name">你</span><b id="pvp-self-score">0</b></div>
+          <div class="pvp-mid">FIRST TO <b>3</b></div>
+          <div class="pvp-side foe"><b id="pvp-foe-score">0</b><span id="pvp-foe-name">对手</span></div>
+        </div>
+
+        <div class="hud-bottom">
+          <div class="hp-panel">
+            <div class="hp-head"><span id="hud-plane-name">苍隼</span><b id="hud-hp-text">110 / 110</b></div>
+            <div class="hp-track"><i id="hud-hp-fill"></i></div>
+            <div class="shield-track" id="hud-shield-wrap"><i id="hud-shield-fill"></i></div>
+          </div>
+          <div class="power-panel">
+            <span class="power-label">FIREPOWER</span>
+            <div class="power-pips" id="hud-power"><i class="on"></i><i></i><i></i></div>
+          </div>
+        </div>
+
+        <div class="countdown-overlay" id="countdown-overlay" hidden>
+          <span>ENGAGE</span>
+          <strong id="countdown-value">3</strong>
+          <small id="countdown-sub">同步战场数据</small>
+        </div>
+
+        <div class="round-banner" id="round-banner" hidden>
+          <small id="round-banner-kicker">ROUND</small>
+          <strong id="round-banner-text">FIGHT</strong>
+        </div>
+
+        <div class="control-hint" id="control-hint">
+          <span class="desktop-only">WASD / 鼠标拖动</span>
+          <span class="mobile-only">拖动屏幕操控</span>
+          <i></i>
+          <span>自动开火</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen mission-screen" id="screen-mission3d" aria-label="3D 街机空战任务">
+      <canvas id="mission-canvas"></canvas>
+      <div class="mission-letterbox top" aria-hidden="true"></div>
+      <div class="mission-letterbox bottom" aria-hidden="true"></div>
+      <div class="mission-vignette" aria-hidden="true"></div>
+      <div class="mission-damage-vignette" id="mission-damage-vignette" aria-hidden="true"></div>
+      <div class="mission-hit-flash" id="mission-hit-flash" aria-hidden="true"></div>
+
+      <div class="mission-hud" id="mission-hud">
+        <div class="mission-top">
+          <div class="mission-id">
+            <button class="hud-pause mission-pause" id="mission-pause-btn" aria-label="暂停任务">
+              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            </button>
+            <div>
+              <span>OPERATION BLACK SKY</span>
+              <b>拦截敌方编队</b>
+            </div>
+          </div>
+          <div class="mission-clock">
+            <span>TIME REMAINING</span>
+            <b id="mission-timer">03:00</b>
+          </div>
+          <div class="mission-killcount">
+            <span>TARGETS</span>
+            <b><i id="mission-kills">0</i><em>/</em><span id="mission-required">6</span></b>
+          </div>
+        </div>
+
+        <div class="mission-flight-data">
+          <div class="flight-row"><span>SPD</span><b id="mission-speed">000</b><small>KM/H</small></div>
+          <div class="flight-row"><span>ALT</span><b id="mission-alt">0000</b><small>M</small></div>
+          <div class="flight-row"><span>MACH</span><b id="mission-mach">0.0</b></div>
+          <div class="throttle-track"><i id="mission-throttle"></i></div>
+          <div class="g-limit"><span>G</span><b id="mission-g">1.0</b></div>
+        </div>
+
+        <div class="mission-health">
+          <div class="mission-health-head"><span>HULL INTEGRITY</span><b id="mission-hp-text">100</b></div>
+          <div class="mission-health-track"><i id="mission-hp-fill"></i></div>
+          <div class="mission-health-sub"><span id="mission-plane-name">FALCON / 01</span><span>ARMOR</span></div>
+        </div>
+
+        <div class="mission-radar-wrap">
+          <div class="radar-frame">
+            <canvas id="mission-radar" width="180" height="180"></canvas>
+            <i class="radar-sweep"></i>
+            <span class="radar-n">N</span>
+            <span class="radar-e">E</span>
+            <span class="radar-s">S</span>
+            <span class="radar-w">W</span>
+          </div>
+          <div class="radar-caption"><span>RADAR</span><b id="mission-radar-count">6 CONTACTS</b></div>
+        </div>
+
+        <div class="mission-crosshair" id="mission-crosshair">
+          <i class="ch w"></i><i class="ch e"></i><i class="ch n"></i><i class="ch s"></i>
+          <span class="ch-dot"></span>
+          <span class="ch-ring"></span>
+          <span class="ch-ring inner"></span>
+        </div>
+
+        <div class="mission-target-marker" id="mission-target-marker" hidden>
+          <span class="tm-corner tl"></span><span class="tm-corner tr"></span>
+          <span class="tm-corner bl"></span><span class="tm-corner br"></span>
+          <span class="tm-lock-ring" id="mission-lock-ring"></span>
+          <b class="tm-label" id="mission-target-label">TARGET</b>
+          <small class="tm-distance" id="mission-target-distance">0.0 KM</small>
+        </div>
+
+        <div class="mission-lock-readout" id="mission-lock-readout">
+          <span id="mission-lock-status">NO TARGET</span>
+          <div class="lock-bar"><i id="mission-lock-fill"></i></div>
+          <small id="mission-lock-hint">将目标保持在准星内完成锁定</small>
+        </div>
+
+        <div class="mission-weapons">
+          <div class="m-weapon" id="mission-weapon-cannon">
+            <span class="m-weapon-icon gun"></span>
+            <div><b>GUN</b><small>∞</small></div>
+            <kbd>SPACE</kbd>
+          </div>
+          <div class="m-weapon" id="mission-weapon-missile">
+            <span class="m-weapon-icon missile"></span>
+            <div><b id="mission-missiles">06</b><small>MSL</small></div>
+            <kbd>F</kbd>
+          </div>
+          <div class="m-weapon" id="mission-weapon-flare">
+            <span class="m-weapon-icon flare"></span>
+            <div><b id="mission-flares">03</b><small>FLARE</small></div>
+            <kbd>C</kbd>
+          </div>
+          <div class="m-weapon boost">
+            <span class="m-weapon-icon boost"></span>
+            <div><b id="mission-boost">100</b><small>BOOST</small></div>
+            <kbd>SHIFT</kbd>
+          </div>
+        </div>
+
+        <div class="mission-killfeed" id="mission-killfeed"></div>
+
+        <div class="mission-message" id="mission-message" hidden>
+          <small id="mission-message-kicker">SYSTEM</small>
+          <b id="mission-message-text">MISSILE EVADED</b>
+        </div>
+
+        <div class="missile-warning" id="missile-warning" hidden>
+          <div class="mw-arrow" id="missile-warning-arrow"></div>
+          <div class="mw-copy">
+            <strong>MISSILE</strong>
+            <span id="missile-warning-sub">敌方导弹锁定</span>
+          </div>
+          <div class="mw-action">释放诱弹 <kbd>C</kbd> · 大幅机动</div>
+        </div>
+
+        <div class="mission-control-hint">
+          <span class="desktop-only">鼠标拖动操纵 · W/S 俯仰 · A/D 偏航 · Q/E 横滚</span>
+          <span class="mobile-only">左侧摇杆操纵 · 右侧武器</span>
+        </div>
+
+        <div class="mission-mobile-controls">
+          <div class="mission-stick" id="mission-stick">
+            <span class="stick-ring"></span>
+            <span class="stick-knob" id="mission-stick-knob"></span>
+          </div>
+          <div class="mission-buttons">
+            <button class="m-btn flare" data-mission-action="flare"><span>诱弹</span><small>FLARE</small></button>
+            <button class="m-btn missile" data-mission-action="missile"><span>导弹</span><small>MSL</small></button>
+            <button class="m-btn boost" data-mission-action="boost"><span>加力</span><small>BOOST</small></button>
+            <button class="m-btn cannon" data-mission-action="cannon"><span>机炮</span><small>GUN</small></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mission-overlay" id="mission-briefing">
+        <div class="briefing-shell">
+          <div class="briefing-rail"><span>BLACK SKY</span><i></i><b>01</b></div>
+          <div class="briefing-main">
+            <span class="eyebrow">MISSION BRIEFING / 作战简报</span>
+            <h2>拦截敌方编队</h2>
+            <p class="briefing-lead">敌方突击编队正在穿越我方空域。驾驶战机升空拦截，在时限内击落全部六架敌机。小心敌方追踪导弹——保持机动，必要时释放热诱弹。</p>
+            <div class="briefing-objectives">
+              <div><span>任务目标</span><b>击落 06 架敌机</b></div>
+              <div><span>行动时限</span><b>03:00</b></div>
+              <div><span>空域</span><b>BLACK SKY</b></div>
+              <div><span>座机</span><b id="mission-brief-plane">苍隼</b></div>
+            </div>
+            <div class="briefing-controls">
+              <div class="briefing-control-group">
+                <span>FLIGHT</span>
+                <p><kbd>鼠标拖动</kbd> 操纵战机 <kbd>W/S</kbd> 俯仰 <kbd>A/D</kbd> 偏航 <kbd>Q/E</kbd> 横滚 <kbd>SHIFT</kbd> 加力</p>
+              </div>
+              <div class="briefing-control-group">
+                <span>WEAPONS</span>
+                <p><kbd>SPACE</kbd> 机炮 <kbd>F</kbd> 追踪导弹 <kbd>C</kbd> 热诱弹</p>
+              </div>
+            </div>
+            <div class="briefing-actions">
+              <button class="btn btn-primary btn-lg" id="mission-start-btn"><span>进入座舱</span><small>LAUNCH</small><i class="btn-shine"></i></button>
+              <button class="btn btn-ghost btn-lg" id="mission-cancel-btn"><span>返回基地</span><small>ABORT</small></button>
+            </div>
+          </div>
+          <div class="briefing-side">
+            <div class="briefing-emblem"><span>06</span><b>TARGETS</b></div>
+            <ul>
+              <li><i></i> 机炮：无限弹药，近距离压制</li>
+              <li><i></i> 导弹：锁定后发射，自动追踪</li>
+              <li><i></i> 诱弹：欺骗来袭导弹</li>
+              <li><i></i> 大幅机动：摆脱近距离锁定</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="mission-overlay compact" id="mission-pause" hidden>
+        <section class="mission-pause-card">
+          <span class="eyebrow">MISSION PAUSED</span>
+          <h2>任务暂停</h2>
+          <p>引擎待机。天空仍在等待你的下一步。</p>
+          <div class="mission-pause-stats" id="mission-pause-stats"></div>
+          <div class="mission-pause-actions">
+            <button class="btn btn-primary" id="mission-resume-btn"><span>继续任务</span><small>RESUME</small></button>
+            <button class="btn btn-ghost" id="mission-restart-btn"><span>重新出击</span><small>RESTART</small></button>
+            <button class="btn btn-ghost danger-outline" id="mission-exit-btn"><span>返回基地</span><small>ABORT</small></button>
+          </div>
+          <div class="settings-row"><span>声音</span><button class="toggle" id="mission-sound-toggle" aria-label="切换声音"><i></i></button></div>
+        </section>
+      </div>
+
+      <div class="mission-overlay compact" id="mission-end" hidden>
+        <section class="mission-end-card">
+          <span class="eyebrow" id="mission-end-eyebrow">MISSION COMPLETE</span>
+          <div class="mission-end-mark" id="mission-end-mark"><span>✓</span></div>
+          <h2 id="mission-end-title">任务完成</h2>
+          <p id="mission-end-subtitle">空域已清理。敌方编队全灭。</p>
+          <div class="mission-end-grid" id="mission-end-grid"></div>
+          <div class="mission-end-extra" id="mission-end-extra"></div>
+          <div class="mission-end-actions" id="mission-end-actions"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+  <div class="modal-backdrop" id="auth-modal" hidden>
+    <section class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <button class="modal-close" data-close-modal="auth-modal" aria-label="关闭">×</button>
+      <div class="modal-emblem"><span></span></div>
+      <span class="eyebrow">PILOT REGISTRATION</span>
+      <h2 id="auth-title">接入飞行员网络</h2>
+      <p class="modal-lead">注册后可同步远征进度、上传积分、解锁机库并参与王牌排名。</p>
+      <div class="auth-tabs">
+        <button class="is-active" data-auth-tab="login">登录</button>
+        <button data-auth-tab="register">注册</button>
+      </div>
+      <form id="auth-form" autocomplete="on">
+        <label><span>飞行员呼号</span><input name="username" id="auth-username" maxlength="16" placeholder="例如：夜航员" autocomplete="username" required /></label>
+        <label><span>通讯密码</span><input name="password" id="auth-password" type="password" maxlength="72" placeholder="至少 6 位" autocomplete="current-password" required /></label>
+        <p class="form-error" id="auth-error"></p>
+        <button class="btn btn-primary btn-full" type="submit" id="auth-submit"><span>接入网络</span><small>CONNECT</small></button>
+      </form>
+      <p class="modal-fine">本地部署账号仅存储于此服务器。新注册飞行员获赠 300 星尘。</p>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="redeem-modal" hidden>
+    <section class="modal redeem-modal" role="dialog" aria-modal="true" aria-labelledby="redeem-title">
+      <button class="modal-close" data-close-modal="redeem-modal" aria-label="关闭">×</button>
+      <span class="eyebrow">CLASSIFIED TRANSMISSION</span>
+      <h2 id="redeem-title">接收加密补给</h2>
+      <p class="modal-lead">每一串兑换码都来自天空深处。输入口令，领取涂装、战机与星尘。</p>
+      <form id="redeem-form">
+        <input class="code-input" id="redeem-code" maxlength="24" placeholder="输入兑换码" autocomplete="off" spellcheck="false" />
+        <button class="btn btn-primary btn-full" type="submit"><span>解密并领取</span><small>DECRYPT</small></button>
+      </form>
+      <p class="redeem-error" id="redeem-error"></p>
+      <div class="redeem-result" id="redeem-result" hidden></div>
+      <div class="code-hints">
+        <span>公开情报：<b>SKY2026</b></span>
+        <span>星图背面似乎还藏着什么...</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="account-modal" hidden>
+    <section class="modal account-modal" role="dialog" aria-modal="true" aria-labelledby="account-title">
+      <button class="modal-close" data-close-modal="account-modal" aria-label="关闭">×</button>
+      <span class="eyebrow">PILOT DOSSIER</span>
+      <h2 id="account-title">飞行员档案</h2>
+      <div class="dossier" id="account-dossier"></div>
+      <div class="account-actions" id="account-actions"></div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="pause-modal" hidden>
+    <section class="modal pause-modal" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+      <span class="eyebrow">SORTIE PAUSED</span>
+      <h2 id="pause-title">战斗暂停</h2>
+      <p class="modal-lead">引擎处于待机状态。天空正在等你。</p>
+      <div class="pause-actions">
+        <button class="btn btn-primary" id="resume-btn"><span>继续战斗</span><small>RESUME</small></button>
+        <button class="btn btn-ghost" id="restart-btn"><span>重新出击</span><small>RESTART</small></button>
+        <button class="btn btn-ghost danger-outline" id="exit-game-btn"><span>返回基地</span><small>ABORT</small></button>
+      </div>
+      <div class="settings-row">
+        <span>声音</span>
+        <button class="toggle" id="pause-sound-toggle" aria-label="切换声音"><i></i></button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="result-modal" hidden>
+    <section class="modal result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
+      <span class="eyebrow" id="result-eyebrow">SORTIE COMPLETE</span>
+      <h2 id="result-title">任务结束</h2>
+      <p class="modal-lead" id="result-subtitle">天空暂时恢复了安静。</p>
+      <div class="result-grid" id="result-grid"></div>
+      <div class="result-extra" id="result-extra"></div>
+      <div class="result-actions" id="result-actions"></div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="duel-result-modal" hidden>
+    <section class="modal duel-result-modal" role="dialog" aria-modal="true" aria-labelledby="duel-result-title">
+      <span class="eyebrow" id="duel-result-eyebrow">MATCH OVER</span>
+      <h2 id="duel-result-title">胜利</h2>
+      <p class="modal-lead" id="duel-result-subtitle">天空记住了你的名字。</p>
+      <div class="duel-final-score" id="duel-final-score"></div>
+      <div class="result-actions" id="duel-result-actions"></div>
+      <p class="modal-fine" id="duel-rematch-note">等待双方确认再战...</p>
+    </section>
+  </div>
+
+  <div class="boot-screen" id="boot-screen">
+    <div class="boot-logo">SKY<span>//</span>STRIKE</div>
+    <div class="boot-track"><i></i></div>
+    <p>INITIALIZING FLIGHT SYSTEMS</p>
+  </div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

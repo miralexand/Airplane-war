@@ -1,0 +1,1969 @@
+/* =========================================================
+   SKY//STRIKE — 3D ARCADE MISSION HUD
+   ========================================================= */
+
+.mission-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #02050b;
+  color: var(--text);
+}
+
+.mission-screen.is-active {
+  display: block;
+}
+
+#mission-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.mission-letterbox {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 9px;
+  pointer-events: none;
+  background: #01040a;
+}
+
+.mission-letterbox.top {
+  top: 0;
+}
+
+.mission-letterbox.bottom {
+  bottom: 0;
+}
+
+.mission-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 44%, rgba(1, 4, 9, 0.38) 100%),
+    linear-gradient(180deg, rgba(1, 4, 9, 0.62), transparent 17%, transparent 75%, rgba(1, 4, 9, 0.56));
+}
+
+.mission-damage-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 42%, rgba(255, 24, 55, 0.16) 70%, rgba(255, 20, 45, 0.46) 100%);
+}
+
+.mission-damage-vignette.on {
+  animation: mission-damage 0.36s ease forwards;
+}
+
+@keyframes mission-damage {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+.mission-hit-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(255, 60, 78, 0.18);
+}
+
+.mission-hit-flash.on {
+  animation: mission-hit 0.28s ease forwards;
+}
+
+@keyframes mission-hit {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------- HUD SHELL ---------- */
+
+.mission-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  font-family: var(--display);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.82);
+}
+
+.mission-hud::before {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border: 1px solid rgba(87, 229, 255, 0.055);
+  clip-path: polygon(0 0, 9% 0, 9% 1px, 91% 1px, 91% 0, 100% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+
+.mission-hud::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(87, 229, 255, 0.25) 18%, transparent 45%, transparent 55%, rgba(87, 229, 255, 0.25) 82%, transparent);
+  pointer-events: none;
+}
+
+.mission-top {
+  position: absolute;
+  top: max(24px, env(safe-area-inset-top));
+  left: clamp(22px, 3vw, 44px);
+  right: clamp(22px, 3vw, 44px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.mission-id {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 250px;
+}
+
+.mission-pause {
+  pointer-events: auto;
+  width: 39px;
+  height: 39px;
+  border-color: rgba(87, 229, 255, 0.25);
+  background: rgba(3, 12, 21, 0.48);
+  color: rgba(218, 248, 255, 0.75);
+  backdrop-filter: blur(10px);
+}
+
+.mission-pause:hover {
+  color: var(--cyan);
+  border-color: rgba(87, 229, 255, 0.55);
+}
+
+.mission-id > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mission-id span {
+  color: var(--cyan);
+  font-size: 0.52rem;
+  letter-spacing: 0.23em;
+}
+
+.mission-id b {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+}
+
+.mission-clock {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+}
+
+.mission-clock span {
+  color: var(--muted-2);
+  font-size: 0.46rem;
+  letter-spacing: 0.24em;
+}
+
+.mission-clock b {
+  margin-top: -1px;
+  color: #f1fcff;
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+}
+
+.mission-clock b.is-critical {
+  color: var(--danger);
+  animation: mission-critical 0.85s ease infinite;
+}
+
+@keyframes mission-critical {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.mission-killcount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 130px;
+}
+
+.mission-killcount > span {
+  color: var(--muted-2);
+  font-size: 0.48rem;
+  letter-spacing: 0.2em;
+}
+
+.mission-killcount b {
+  font-size: 1.62rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.mission-killcount b i {
+  color: var(--gold);
+  font-style: normal;
+}
+
+.mission-killcount b em {
+  margin: 0 3px;
+  color: var(--muted-2);
+  font-size: 0.8rem;
+  font-style: normal;
+}
+
+.mission-killcount b span {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+/* ---------- FLIGHT INSTRUMENTS ---------- */
+
+.mission-flight-data {
+  position: absolute;
+  left: clamp(22px, 3vw, 44px);
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 142px;
+  transform: translateY(-50%);
+}
+
+.flight-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.flight-row > span {
+  color: var(--muted-2);
+  font-size: 0.48rem;
+  letter-spacing: 0.12em;
+}
+
+.flight-row b {
+  color: rgba(232, 250, 255, 0.92);
+  font-size: 1.06rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-align: right;
+}
+
+.flight-row small {
+  color: var(--muted-2);
+  font-size: 0.43rem;
+  letter-spacing: 0.05em;
+}
+
+.throttle-track {
+  height: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.throttle-track i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #209dc2, var(--cyan));
+  box-shadow: 0 0 9px rgba(87, 229, 255, 0.5);
+  transform-origin: left;
+  transition: transform 0.18s linear;
+}
+
+.g-limit {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.g-limit span {
+  color: var(--muted-2);
+  font-size: 0.45rem;
+}
+
+.g-limit b {
+  color: rgba(255, 207, 91, 0.8);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+
+/* ---------- HEALTH ---------- */
+
+.mission-health {
+  position: absolute;
+  left: clamp(22px, 3vw, 44px);
+  bottom: max(28px, env(safe-area-inset-bottom));
+  width: min(260px, 30vw);
+}
+
+.mission-health-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.mission-health-head span {
+  color: var(--muted-2);
+  font-size: 0.46rem;
+  letter-spacing: 0.17em;
+}
+
+.mission-health-head b {
+  color: rgba(226, 249, 255, 0.9);
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.mission-health-track {
+  height: 5px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.mission-health-track i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #1fc7ba, #7affd1);
+  box-shadow: 0 0 12px rgba(69, 255, 197, 0.3);
+  transform-origin: left;
+  transition: transform 0.15s ease, background 0.25s ease;
+}
+
+.mission-health-track i.is-critical {
+  background: linear-gradient(90deg, #ff355a, #ff8b9d);
+  box-shadow: 0 0 14px rgba(255, 60, 93, 0.42);
+}
+
+.mission-health-sub {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: var(--muted-2);
+  font-size: 0.45rem;
+  letter-spacing: 0.1em;
+}
+
+/* ---------- RADAR ---------- */
+
+.mission-radar-wrap {
+  position: absolute;
+  right: clamp(22px, 3vw, 44px);
+  bottom: max(28px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.radar-frame {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  overflow: hidden;
+  border: 1px solid rgba(87, 229, 255, 0.17);
+  border-radius: 50%;
+  background: rgba(2, 11, 17, 0.48);
+  box-shadow: inset 0 0 28px rgba(87, 229, 255, 0.035);
+}
+
+.radar-frame::before,
+.radar-frame::after {
+  content: "";
+  position: absolute;
+  background: rgba(87, 229, 255, 0.11);
+}
+
+.radar-frame::before {
+  left: 50%;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+}
+
+.radar-frame::after {
+  top: 50%;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+}
+
+#mission-radar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.radar-sweep {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50%;
+  height: 50%;
+  transform-origin: 0 0;
+  background: conic-gradient(from 0deg, rgba(87, 229, 255, 0.22), transparent 48%);
+  border-radius: 100% 0 0 0;
+  animation: radar-sweep 5s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes radar-sweep {
+  to { transform: rotate(360deg); }
+}
+
+.radar-n, .radar-e, .radar-s, .radar-w {
+  position: absolute;
+  color: rgba(111, 179, 203, 0.45);
+  font-size: 0.4rem;
+  letter-spacing: 0.08em;
+}
+
+.radar-n { left: 50%; top: 4px; transform: translateX(-50%); }
+.radar-e { right: 6px; top: 50%; transform: translateY(-50%); }
+.radar-s { left: 50%; bottom: 4px; transform: translateX(-50%); }
+.radar-w { left: 6px; top: 50%; transform: translateY(-50%); }
+
+.radar-caption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-2);
+  font-size: 0.45rem;
+  letter-spacing: 0.12em;
+}
+
+.radar-caption b {
+  color: rgba(144, 213, 233, 0.72);
+  font-size: 0.44rem;
+  font-weight: 400;
+}
+
+/* ---------- WEAPONS ---------- */
+
+.mission-weapons {
+  position: absolute;
+  left: 50%;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 7px;
+  transform: translateX(-50%);
+}
+
+.m-weapon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 108px;
+  height: 45px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(110deg, rgba(7, 20, 32, 0.68), rgba(3, 9, 15, 0.38));
+  backdrop-filter: blur(6px);
+}
+
+.m-weapon div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.m-weapon b {
+  color: rgba(230, 250, 255, 0.9);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.m-weapon small {
+  color: var(--muted-2);
+  font-size: 0.4rem;
+  letter-spacing: 0.12em;
+}
+
+.m-weapon kbd {
+  margin-left: auto;
+  padding: 2px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  color: var(--muted-2);
+  font-family: var(--display);
+  font-size: 0.4rem;
+  letter-spacing: 0.04em;
+}
+
+.m-weapon-icon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(87, 229, 255, 0.16);
+  border-radius: 50%;
+}
+
+.m-weapon-icon::before,
+.m-weapon-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 6px rgba(87, 229, 255, 0.55);
+}
+
+.m-weapon-icon.gun::before {
+  width: 9px;
+  height: 1px;
+  transform: translate(-50%, -50%);
+}
+
+.m-weapon-icon.gun::after {
+  width: 1px;
+  height: 7px;
+  transform: translate(-50%, -50%) rotate(35deg);
+}
+
+.m-weapon-icon.missile::before {
+  width: 2px;
+  height: 10px;
+  transform: translate(-50%, -50%) rotate(40deg);
+}
+
+.m-weapon-icon.flare::before {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.m-weapon-icon.boost::before {
+  width: 2px;
+  height: 9px;
+  transform: translate(-50%, -50%);
+  clip-path: polygon(50% 100%, 0 0, 100% 0);
+}
+
+.m-weapon.boost .m-weapon-icon {
+  border-color: rgba(255, 207, 91, 0.22);
+}
+
+.m-weapon.boost .m-weapon-icon::before {
+  background: var(--gold);
+  box-shadow: 0 0 6px rgba(255, 207, 91, 0.6);
+}
+
+/* ---------- RETICLE & LOCK ---------- */
+
+.mission-crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 104px;
+  height: 104px;
+  transform: translate(-50%, -50%);
+  transition: filter 0.2s ease;
+}
+
+.ch {
+  position: absolute;
+  background: rgba(149, 239, 255, 0.62);
+  box-shadow: 0 0 7px rgba(87, 229, 255, 0.4);
+}
+
+.ch.w, .ch.e {
+  top: 50%;
+  width: 19px;
+  height: 1px;
+}
+
+.ch.w { left: 0; }
+.ch.e { right: 0; }
+.ch.n, .ch.s {
+  left: 50%;
+  width: 1px;
+  height: 19px;
+}
+
+.ch.n { top: 0; }
+.ch.s { bottom: 0; }
+
+.ch-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 9px var(--cyan);
+  transform: translate(-50%, -50%);
+}
+
+.ch-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 31px;
+  height: 31px;
+  border: 1px solid rgba(89, 213, 240, 0.33);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ch-ring.inner {
+  width: 8px;
+  height: 8px;
+  border-color: rgba(89, 213, 240, 0.2);
+}
+
+.mission-crosshair.is-locking .ch-ring {
+  border-color: rgba(255, 207, 91, 0.55);
+  animation: reticle-pulse 0.8s ease infinite;
+}
+
+.mission-crosshair.is-locked .ch,
+.mission-crosshair.is-locked .ch-dot {
+  background: var(--gold);
+  box-shadow: 0 0 10px rgba(255, 207, 91, 0.65);
+}
+
+.mission-crosshair.is-locked .ch-ring {
+  border-color: rgba(255, 207, 91, 0.75);
+  box-shadow: 0 0 18px rgba(255, 207, 91, 0.12);
+}
+
+.mission-crosshair.hit .ch-dot {
+  width: 7px;
+  height: 7px;
+  background: #fff;
+  box-shadow: 0 0 16px #fff;
+}
+
+@keyframes reticle-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.75; }
+  50% { transform: translate(-50%, -50%) scale(1.22); opacity: 1; }
+}
+
+.mission-target-marker {
+  position: absolute;
+  z-index: 9;
+  width: 58px;
+  height: 58px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.tm-corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: rgba(255, 103, 127, 0.78);
+  border-style: solid;
+  filter: drop-shadow(0 0 4px rgba(255, 76, 105, 0.4));
+}
+
+.tm-corner.tl { left: 0; top: 0; border-width: 1px 0 0 1px; }
+.tm-corner.tr { right: 0; top: 0; border-width: 1px 1px 0 0; }
+.tm-corner.bl { left: 0; bottom: 0; border-width: 0 0 1px 1px; }
+.tm-corner.br { right: 0; bottom: 0; border-width: 0 1px 1px 0; }
+
+.tm-lock-ring {
+  --lock: 0%;
+  --lock-color: #ff5c78;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 76px;
+  height: 76px;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(var(--lock-color) var(--lock), rgba(255, 255, 255, 0.07) 0);
+  -webkit-mask: radial-gradient(circle, transparent 0 62%, #000 63% 67%, transparent 68%);
+  mask: radial-gradient(circle, transparent 0 62%, #000 63% 67%, transparent 68%);
+  border-radius: 50%;
+}
+
+.mission-target-marker.is-in-reticle .tm-lock-ring {
+  --lock-color: #ffcf5b;
+}
+
+.mission-target-marker.is-locked .tm-corner {
+  border-color: var(--gold);
+}
+
+.mission-target-marker.is-locked .tm-lock-ring {
+  --lock-color: var(--gold);
+}
+
+.tm-label,
+.tm-distance {
+  position: absolute;
+  left: 50%;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  font-family: var(--display);
+}
+
+.tm-label {
+  top: -20px;
+  color: #ff899c;
+  font-size: 0.46rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+}
+
+.mission-target-marker.is-locked .tm-label {
+  color: var(--gold);
+}
+
+.tm-distance {
+  bottom: -18px;
+  color: var(--muted);
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+}
+
+.mission-lock-readout {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 72px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 230px;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.mission-lock-readout > span {
+  color: rgba(166, 220, 235, 0.75);
+  font-size: 0.52rem;
+  letter-spacing: 0.17em;
+}
+
+.lock-bar {
+  width: 100%;
+  height: 2px;
+  margin-top: 5px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lock-bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255, 92, 120, 0.7), #ffcf5b);
+  box-shadow: 0 0 9px rgba(255, 207, 91, 0.4);
+  transition: width 0.1s linear;
+}
+
+.mission-lock-readout small {
+  margin-top: 4px;
+  color: var(--muted-2);
+  font-size: 0.43rem;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- MISSILE WARNING ---------- */
+
+.missile-warning {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-width: min(390px, calc(100vw - 32px));
+  padding: 10px 18px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 66, 91, 0.45);
+  background:
+    linear-gradient(100deg, rgba(75, 4, 16, 0.8), rgba(25, 4, 10, 0.58)),
+    rgba(4, 7, 12, 0.7);
+  box-shadow: 0 0 35px rgba(255, 36, 68, 0.15), inset 0 0 22px rgba(255, 40, 70, 0.07);
+  animation: missile-warning-pulse 0.85s ease infinite;
+  backdrop-filter: blur(8px);
+}
+
+.missile-warning::before,
+.missile-warning::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: rgba(255, 67, 91, 0.35);
+}
+
+.missile-warning::before { top: 4px; }
+.missile-warning::after { bottom: 4px; }
+
+.missile-warning.is-intense {
+  animation-duration: 0.42s;
+}
+
+.missile-warning.is-locking {
+  border-color: rgba(255, 207, 91, 0.4);
+  background:
+    linear-gradient(100deg, rgba(58, 40, 5, 0.72), rgba(22, 17, 4, 0.55)),
+    rgba(4, 7, 12, 0.68);
+  box-shadow: 0 0 35px rgba(255, 188, 50, 0.1);
+}
+
+@keyframes missile-warning-pulse {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.7; filter: brightness(1.22); }
+}
+
+.mw-arrow {
+  position: relative;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 102, 123, 0.55);
+  border-radius: 50%;
+}
+
+.mw-arrow::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 9px solid #ff667f;
+}
+
+.mw-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mw-copy strong {
+  color: #ff6b83;
+  font-size: 1.32rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  line-height: 1;
+}
+
+.missile-warning.is-locking .mw-copy strong {
+  color: var(--gold);
+}
+
+.mw-copy span {
+  color: rgba(255, 179, 189, 0.72);
+  font-size: 0.5rem;
+  letter-spacing: 0.07em;
+}
+
+.mw-action {
+  margin-left: auto;
+  color: rgba(255, 169, 182, 0.68);
+  font-size: 0.49rem;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.mw-action kbd {
+  padding: 1px 4px;
+  border: 1px solid rgba(255, 123, 141, 0.28);
+  border-radius: 2px;
+  color: #ffb5c2;
+  font-size: 0.45rem;
+}
+
+/* ---------- MESSAGES & KILLFEED ---------- */
+
+.mission-message {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  text-align: center;
+  animation: mission-message-in 0.35s var(--ease);
+}
+
+.mission-message small {
+  color: var(--muted);
+  font-size: 0.48rem;
+  letter-spacing: 0.25em;
+}
+
+.mission-message b {
+  margin-top: 3px;
+  color: #e8fcff;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-shadow: 0 0 22px rgba(87, 229, 255, 0.25);
+}
+
+.mission-message.tone-success small,
+.mission-message.tone-success b {
+  color: var(--green);
+}
+
+.mission-message.tone-warning small,
+.mission-message.tone-warning b {
+  color: var(--gold);
+}
+
+.mission-message.tone-danger small,
+.mission-message.tone-danger b {
+  color: var(--danger);
+}
+
+@keyframes mission-message-in {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.mission-killfeed {
+  position: absolute;
+  right: clamp(24px, 3vw, 46px);
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  transform: translateY(-50%);
+}
+
+.killfeed-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-right: 1px solid rgba(255, 207, 91, 0.4);
+  background: linear-gradient(90deg, transparent, rgba(7, 17, 27, 0.62));
+  color: rgba(208, 236, 245, 0.8);
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
+  animation: killfeed-in 0.28s ease;
+}
+
+.killfeed-item b {
+  color: var(--gold);
+  font-weight: 400;
+}
+
+.killfeed-item.is-out {
+  opacity: 0;
+  transform: translateX(10px);
+  transition: 0.3s ease;
+}
+
+@keyframes killfeed-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.mission-control-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 83px;
+  transform: translateX(-50%);
+  color: rgba(158, 195, 209, 0.42);
+  font-size: 0.45rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  animation: mission-hint-fade 12s ease forwards;
+}
+
+@keyframes mission-hint-fade {
+  0%, 60% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+/* ---------- MOBILE CONTROLS ---------- */
+
+.mission-mobile-controls {
+  display: none;
+}
+
+.mission-stick {
+  position: absolute;
+  left: max(18px, env(safe-area-inset-left));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  width: 126px;
+  height: 126px;
+  border: 1px solid rgba(87, 229, 255, 0.18);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(87, 229, 255, 0.045), rgba(2, 9, 15, 0.25));
+  pointer-events: auto;
+  touch-action: none;
+  backdrop-filter: blur(5px);
+}
+
+.stick-ring {
+  position: absolute;
+  inset: 22px;
+  border: 1px dashed rgba(87, 229, 255, 0.12);
+  border-radius: 50%;
+}
+
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 42px;
+  height: 42px;
+  margin: -21px 0 0 -21px;
+  border: 1px solid rgba(87, 229, 255, 0.35);
+  border-radius: 50%;
+  background: rgba(17, 52, 66, 0.6);
+  box-shadow: 0 0 16px rgba(87, 229, 255, 0.12);
+  pointer-events: none;
+}
+
+.mission-stick.is-active {
+  border-color: rgba(87, 229, 255, 0.45);
+  background: radial-gradient(circle, rgba(87, 229, 255, 0.09), rgba(2, 9, 15, 0.3));
+}
+
+.mission-buttons {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(22px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: repeat(2, 55px);
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.m-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 55px;
+  height: 55px;
+  border: 1px solid rgba(87, 229, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(3, 14, 23, 0.58);
+  color: rgba(221, 249, 255, 0.82);
+  font-family: var(--display);
+  touch-action: none;
+  backdrop-filter: blur(6px);
+  transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.m-btn span {
+  font-size: 0.56rem;
+  letter-spacing: 0.05em;
+}
+
+.m-btn small {
+  color: var(--muted-2);
+  font-size: 0.38rem;
+  letter-spacing: 0.08em;
+}
+
+.m-btn.cannon {
+  grid-column: 2;
+  grid-row: 2;
+  width: 64px;
+  height: 64px;
+  margin: -5px;
+  border-color: rgba(255, 207, 91, 0.32);
+  color: var(--gold);
+}
+
+.m-btn.missile {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.m-btn.flare {
+  grid-column: 1;
+  grid-row: 2;
+  border-color: rgba(255, 110, 159, 0.24);
+  color: #ff9cbd;
+}
+
+.m-btn.boost {
+  grid-column: 1;
+  grid-row: 1;
+  color: #8de5ff;
+}
+
+.m-btn.is-pressed {
+  transform: scale(0.92);
+  background: rgba(87, 229, 255, 0.15);
+  border-color: rgba(87, 229, 255, 0.56);
+}
+
+/* ---------- OVERLAYS ---------- */
+
+.mission-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(18, 62, 84, 0.18), transparent 48%),
+    rgba(2, 6, 12, 0.72);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+.mission-overlay.compact {
+  background: rgba(2, 6, 12, 0.68);
+}
+
+.briefing-shell {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) 260px;
+  width: min(1080px, 100%);
+  max-height: calc(100dvh - 56px);
+  overflow: hidden;
+  border: 1px solid rgba(87, 229, 255, 0.19);
+  background:
+    linear-gradient(135deg, rgba(10, 26, 43, 0.96), rgba(4, 10, 18, 0.97));
+  box-shadow: 0 38px 120px rgba(0, 0, 0, 0.6);
+  animation: mission-overlay-in 0.55s var(--ease);
+}
+
+@keyframes mission-overlay-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.briefing-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+  border-right: 1px solid rgba(87, 229, 255, 0.1);
+  background: rgba(87, 229, 255, 0.025);
+}
+
+.briefing-rail span {
+  color: var(--cyan);
+  font-family: var(--display);
+  font-size: 0.48rem;
+  letter-spacing: 0.25em;
+  writing-mode: vertical-rl;
+}
+
+.briefing-rail i {
+  width: 1px;
+  flex: 1;
+  margin: 20px 0;
+  background: linear-gradient(transparent, rgba(87, 229, 255, 0.3), transparent);
+}
+
+.briefing-rail b {
+  color: rgba(191, 236, 248, 0.5);
+  font-family: var(--display);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.briefing-main {
+  min-width: 0;
+  padding: 38px 42px;
+  overflow-y: auto;
+}
+
+.briefing-main h2 {
+  margin-top: 10px;
+  font-family: var(--display);
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  line-height: 1;
+}
+
+.briefing-lead {
+  max-width: 620px;
+  margin-top: 16px;
+  color: #9cb6c6;
+  font-size: 0.72rem;
+  line-height: 1.9;
+}
+
+.briefing-objectives {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  margin-top: 25px;
+}
+
+.briefing-objectives > div {
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.briefing-objectives span {
+  display: block;
+  color: var(--muted-2);
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+}
+
+.briefing-objectives b {
+  display: block;
+  margin-top: 4px;
+  color: #def8ff;
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.briefing-controls {
+  display: flex;
+  gap: 20px;
+  margin-top: 22px;
+  padding-top: 19px;
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+.briefing-control-group {
+  flex: 1;
+}
+
+.briefing-control-group > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--cyan);
+  font-family: var(--display);
+  font-size: 0.46rem;
+  letter-spacing: 0.16em;
+}
+
+.briefing-control-group p {
+  color: var(--muted);
+  font-size: 0.58rem;
+  line-height: 2;
+}
+
+.briefing-control-group kbd {
+  display: inline-block;
+  margin: 0 2px;
+  padding: 1px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  color: rgba(220, 247, 255, 0.8);
+  font-family: var(--display);
+  font-size: 0.5rem;
+}
+
+.briefing-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 27px;
+}
+
+.briefing-actions .btn {
+  min-width: 160px;
+}
+
+.briefing-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 34px 26px;
+  border-left: 1px solid rgba(87, 229, 255, 0.09);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(87, 229, 255, 0.055), transparent 44%),
+    rgba(2, 8, 14, 0.26);
+}
+
+.briefing-emblem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 116px;
+  height: 116px;
+  margin: 3px auto 0;
+  border: 1px solid rgba(87, 229, 255, 0.18);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(87, 229, 255, 0.08), transparent 66%);
+  box-shadow: inset 0 0 28px rgba(87, 229, 255, 0.05);
+}
+
+.briefing-emblem span {
+  color: #e8fcff;
+  font-family: var(--display);
+  font-size: 2.1rem;
+  line-height: 1;
+}
+
+.briefing-emblem b {
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: 0.44rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+}
+
+.briefing-side ul {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+}
+
+.briefing-side li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.56rem;
+  line-height: 1.65;
+}
+
+.briefing-side li i {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  margin-top: 4px;
+  border: 1px solid var(--cyan);
+  transform: rotate(45deg);
+}
+
+/* ---------- PAUSE & END ---------- */
+
+.mission-pause-card,
+.mission-end-card {
+  width: min(410px, 100%);
+  padding: 33px;
+  border: 1px solid rgba(87, 229, 255, 0.18);
+  background: linear-gradient(145deg, rgba(12, 28, 45, 0.97), rgba(4, 10, 18, 0.98));
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.55);
+  animation: mission-overlay-in 0.42s var(--ease);
+}
+
+.mission-pause-card h2,
+.mission-end-card h2 {
+  margin-top: 9px;
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+}
+
+.mission-pause-card > p,
+.mission-end-card > p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.63rem;
+  line-height: 1.75;
+}
+
+.mission-pause-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.mission-pause-stats > div {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.mission-pause-stats span {
+  display: block;
+  color: var(--muted-2);
+  font-size: 0.46rem;
+  letter-spacing: 0.08em;
+}
+
+.mission-pause-stats b {
+  display: block;
+  margin-top: 3px;
+  color: #dff9ff;
+  font-family: var(--display);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.mission-pause-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 20px;
+}
+
+.mission-pause-actions .btn {
+  width: 100%;
+}
+
+.mission-end-card {
+  width: min(620px, 100%);
+  text-align: center;
+}
+
+.mission-end-card .eyebrow {
+  color: var(--green);
+}
+
+.mission-end.is-failure .eyebrow {
+  color: var(--danger);
+}
+
+.mission-end-mark {
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  margin: 13px auto 16px;
+  border: 1px solid rgba(107, 255, 184, 0.32);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(107, 255, 184, 0.11), transparent 68%);
+  box-shadow: 0 0 30px rgba(107, 255, 184, 0.08);
+}
+
+.is-failure .mission-end-mark {
+  border-color: rgba(255, 92, 114, 0.34);
+  background: radial-gradient(circle, rgba(255, 92, 114, 0.1), transparent 68%);
+  box-shadow: 0 0 30px rgba(255, 92, 114, 0.07);
+}
+
+.mission-end-mark span {
+  color: var(--green);
+  font-family: var(--display);
+  font-size: 2.2rem;
+  font-weight: 300;
+}
+
+.is-failure .mission-end-mark span {
+  color: var(--danger);
+  font-size: 2.6rem;
+}
+
+.mission-end-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-top: 22px;
+}
+
+.mission-end-stat {
+  padding: 12px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.mission-end-stat span {
+  display: block;
+  color: var(--muted-2);
+  font-family: var(--display);
+  font-size: 0.43rem;
+  letter-spacing: 0.11em;
+}
+
+.mission-end-stat b {
+  display: block;
+  margin-top: 4px;
+  color: #e7faff;
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+.mission-end-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.52rem;
+  line-height: 1.7;
+}
+
+.mission-end-extra i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--muted-2);
+}
+
+.mission-end-extra .record {
+  color: var(--gold);
+}
+
+.mission-end-extra .login-hint {
+  width: 100%;
+  color: var(--cyan);
+  font-size: 0.48rem;
+}
+
+.mission-end-extra .mission-sync-state {
+  width: 100%;
+  color: var(--muted-2);
+  font-size: 0.48rem;
+}
+
+.mission-end-extra .mission-sync-state.is-done {
+  color: var(--green);
+}
+
+.mission-end-extra .mission-sync-state.is-error {
+  color: var(--danger);
+}
+
+.mission-end-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 20px;
+}
+
+.mission-end-actions .btn {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* ---------- RESPONSIVE ---------- */
+
+@media (max-width: 1080px) {
+  .briefing-shell {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .briefing-side {
+    display: none;
+  }
+}
+
+@media (max-width: 860px), (pointer: coarse) {
+  .mission-hud::before,
+  .mission-hud::after {
+    display: none;
+  }
+
+  .mission-top {
+    top: max(14px, env(safe-area-inset-top));
+    left: 15px;
+    right: 15px;
+  }
+
+  .mission-id {
+    min-width: 0;
+  }
+
+  .mission-id > div {
+    display: none;
+  }
+
+  .mission-pause {
+    width: 35px;
+    height: 35px;
+  }
+
+  .mission-clock span {
+    font-size: 0.4rem;
+  }
+
+  .mission-clock b {
+    font-size: 1.2rem;
+  }
+
+  .mission-killcount {
+    min-width: 64px;
+  }
+
+  .mission-killcount > span {
+    font-size: 0.4rem;
+  }
+
+  .mission-killcount b {
+    font-size: 1.25rem;
+  }
+
+  .mission-flight-data {
+    left: 15px;
+    top: 46%;
+    width: 92px;
+    gap: 5px;
+  }
+
+  .flight-row {
+    grid-template-columns: 25px 1fr;
+    gap: 4px;
+  }
+
+  .flight-row b {
+    font-size: 0.8rem;
+  }
+
+  .flight-row small,
+  .g-limit {
+    display: none;
+  }
+
+  .mission-health {
+    left: 15px;
+    bottom: calc(max(24px, env(safe-area-inset-bottom)) + 135px);
+    width: 155px;
+  }
+
+  .mission-health-head span {
+    font-size: 0.4rem;
+  }
+
+  .mission-health-head b {
+    font-size: 0.68rem;
+  }
+
+  .mission-radar-wrap,
+  .mission-killfeed,
+  .mission-control-hint {
+    display: none;
+  }
+
+  .mission-weapons {
+    bottom: auto;
+    top: max(52px, calc(env(safe-area-inset-top) + 45px));
+    gap: 4px;
+  }
+
+  .m-weapon {
+    min-width: 0;
+    height: 32px;
+    padding: 0 7px;
+    gap: 5px;
+  }
+
+  .m-weapon-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .m-weapon b {
+    font-size: 0.58rem;
+  }
+
+  .m-weapon small {
+    display: none;
+  }
+
+  .m-weapon kbd {
+    display: none;
+  }
+
+  .mission-mobile-controls {
+    display: block;
+  }
+
+  .mission-crosshair {
+    width: 82px;
+    height: 82px;
+  }
+
+  .mission-lock-readout {
+    top: calc(50% + 55px);
+    width: 190px;
+  }
+
+  .mission-lock-readout small {
+    display: none;
+  }
+
+  .mission-target-marker {
+    width: 48px;
+    height: 48px;
+  }
+
+  .tm-lock-ring {
+    width: 64px;
+    height: 64px;
+  }
+
+  .missile-warning {
+    top: 15%;
+    min-width: 0;
+    width: calc(100vw - 28px);
+    gap: 11px;
+    padding: 8px 13px;
+  }
+
+  .mw-action {
+    display: none;
+  }
+
+  .mw-copy strong {
+    font-size: 1.05rem;
+  }
+
+  .mw-copy span {
+    font-size: 0.44rem;
+  }
+
+  .mission-message {
+    top: 24%;
+  }
+
+  .mission-message b {
+    font-size: 1rem;
+  }
+
+  .mission-overlay {
+    padding: 12px;
+  }
+
+  .briefing-shell {
+    grid-template-columns: 1fr;
+    max-height: calc(100dvh - 24px);
+  }
+
+  .briefing-rail {
+    display: none;
+  }
+
+  .briefing-main {
+    padding: 25px 20px 22px;
+  }
+
+  .briefing-main h2 {
+    font-size: 2rem;
+  }
+
+  .briefing-lead {
+    margin-top: 10px;
+    font-size: 0.64rem;
+    line-height: 1.8;
+  }
+
+  .briefing-objectives {
+    grid-template-columns: repeat(2, 1fr);
+    margin-top: 16px;
+  }
+
+  .briefing-controls {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 13px;
+  }
+
+  .briefing-control-group p {
+    font-size: 0.54rem;
+    line-height: 1.9;
+  }
+
+  .briefing-actions {
+    margin-top: 18px;
+  }
+
+  .briefing-actions .btn {
+    flex: 1;
+    min-width: 0;
+    height: 46px;
+  }
+
+  .mission-end-card {
+    padding: 24px 17px;
+  }
+
+  .mission-end-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mission-end-actions .btn {
+    min-width: 90px;
+  }
+
+  .mission-pause-card {
+    padding: 26px 20px;
+  }
+
+  .mission-stick {
+    width: 112px;
+    height: 112px;
+  }
+
+  .mission-buttons {
+    grid-template-columns: repeat(2, 50px);
+    gap: 6px;
+  }
+
+  .m-btn {
+    width: 50px;
+    height: 50px;
+  }
+
+  .m-btn.cannon {
+    width: 58px;
+    height: 58px;
+  }
+}
+
+@media (max-width: 460px) {
+  .mission-clock {
+    top: 2px;
+  }
+
+  .mission-clock span {
+    display: none;
+  }
+
+  .mission-weapons {
+    top: max(47px, calc(env(safe-area-inset-top) + 40px));
+  }
+
+  .m-weapon {
+    height: 27px;
+    padding: 0 5px;
+  }
+
+  .m-weapon-icon {
+    display: none;
+  }
+
+  .m-weapon b {
+    font-size: 0.52rem;
+  }
+
+  .mission-health {
+    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 122px);
+    width: 135px;
+  }
+
+  .mission-stick {
+    left: 12px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: 100px;
+    height: 100px;
+  }
+
+  .mission-buttons {
+    right: 12px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    grid-template-columns: repeat(2, 45px);
+    gap: 5px;
+  }
+
+  .m-btn {
+    width: 45px;
+    height: 45px;
+  }
+
+  .m-btn.cannon {
+    width: 53px;
+    height: 53px;
+  }
+
+  .mission-lock-readout {
+    top: calc(50% + 51px);
+    width: 168px;
+  }
+
+  .mission-lock-readout > span {
+    font-size: 0.44rem;
+  }
+
+  .mission-target-marker .tm-distance {
+    display: none;
+  }
+}
+
+/* ---------- CRISP RENDERING ---------- */
+/* Remove the full-screen grain/scanline treatment and all glass blur. */
+.noise,
+.scanlines {
+  display: none !important;
+}
+
+* {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (max-height: 680px) and (orientation: landscape) {
+  .briefing-main {
+    padding: 18px 24px;
+  }
+
+  .briefing-main h2 {
+    font-size: 1.8rem;
+  }
+
+  .briefing-lead {
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  .briefing-objectives {
+    margin-top: 10px;
+  }
+
+  .briefing-controls {
+    margin-top: 10px;
+    padding-top: 9px;
+  }
+
+  .briefing-actions {
+    margin-top: 12px;
+  }
+
+  .mission-flight-data {
+    top: 43%;
+  }
+
+  .mission-health {
+    bottom: 18px;
+  }
+}

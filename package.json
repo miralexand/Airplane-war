@@ -1,0 +1,24 @@
+{
+  "name": "sky-strike-arena",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SKY//STRIKE - a browser 3D arcade air-combat game with missile lock-on, flares and LAN duel modes.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "vendor:three": "node scripts/copy-three.mjs",
+    "check": "node --check server/index.js && node --check server/store.js && node --check server/duel.js && node --check public/js/app.js && node --check public/js/game.js && node --check public/js/mission3d.js && node --check public/js/visuals.js && node --check public/js/audio.js && node --check public/js/api.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "three": "^0.186.1"
+  }
+}

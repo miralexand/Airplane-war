@@ -1,0 +1,16 @@
+services:
+  sky-strike:
+    build: .
+    container_name: sky-strike
+    init: true
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATA_DIR: /app/data
+    volumes:
+      - sky-strike-data:/app/data
+
+volumes:
+  sky-strike-data:
