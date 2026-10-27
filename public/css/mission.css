@@ -2093,3 +2093,163 @@
     display: none;
   }
 }
+
+/* ---------- PLANE ULTIMATE ---------- */
+
+.m-weapon.ultimate {
+  min-width: 138px;
+  border-color: rgba(182, 140, 255, 0.26);
+  background: linear-gradient(110deg, rgba(31, 18, 54, 0.72), rgba(7, 10, 24, 0.46));
+}
+
+.m-weapon.ultimate.is-ready {
+  border-color: rgba(196, 158, 255, 0.62);
+  box-shadow: 0 0 22px rgba(160, 110, 255, 0.18);
+}
+
+.m-weapon.ultimate.is-active {
+  border-color: rgba(127, 232, 255, 0.72);
+  box-shadow: 0 0 28px rgba(127, 232, 255, 0.24);
+}
+
+.m-weapon.ultimate b {
+  color: #e9dcff;
+}
+
+.m-weapon.ultimate.is-ready b {
+  color: #fff;
+}
+
+.m-weapon.ultimate small {
+  color: rgba(196, 158, 255, 0.72);
+}
+
+.m-weapon.ultimate.is-ready small {
+  color: #9ff3ff;
+}
+
+.m-weapon-icon.ultimate {
+  border-color: rgba(182, 140, 255, 0.34);
+  background: radial-gradient(circle, rgba(182, 140, 255, 0.22), transparent 70%);
+}
+
+.m-weapon-icon.ultimate::before {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: #c9a4ff;
+  box-shadow: 0 0 10px rgba(201, 164, 255, 0.9);
+}
+
+.m-weapon-icon.ultimate::after {
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(127, 232, 255, 0.6);
+  border-radius: 50%;
+  background: none;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px rgba(127, 232, 255, 0.5);
+}
+
+.m-btn.ultimate {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-self: end;
+  width: 118px;
+  height: 46px;
+  border-radius: 999px;
+  border-color: rgba(182, 140, 255, 0.42);
+  color: #e9dcff;
+  background: rgba(27, 16, 46, 0.66);
+}
+
+.m-btn.ultimate small {
+  color: rgba(196, 158, 255, 0.78);
+}
+
+/* ---------- BRIEFING MAP PICKER ---------- */
+
+.briefing-map-picker {
+  margin-top: 18px;
+}
+
+.briefing-map-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
+.briefing-map-head > span {
+  color: var(--cyan);
+  font-family: var(--display);
+  font-size: 0.48rem;
+  letter-spacing: 0.16em;
+}
+
+.briefing-map-head b {
+  color: #9cb6c6;
+  font-size: 0.58rem;
+  font-weight: 400;
+}
+
+.briefing-map-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.briefing-map-options button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 130px;
+  padding: 9px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.022);
+  text-align: left;
+  transition: 0.22s ease;
+}
+
+.briefing-map-options button:hover {
+  border-color: rgba(87, 229, 255, 0.34);
+  background: rgba(87, 229, 255, 0.045);
+}
+
+.briefing-map-options button.is-active {
+  border-color: rgba(87, 229, 255, 0.58);
+  background: linear-gradient(100deg, rgba(87, 229, 255, 0.12), rgba(87, 229, 255, 0.02));
+  box-shadow: inset 2px 0 0 var(--cyan);
+}
+
+.briefing-map-options b {
+  color: #e4fbff;
+  font-family: var(--display);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.briefing-map-options small {
+  color: var(--muted-2);
+  font-family: var(--display);
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+}
+
+.briefing-map-options button.is-active small {
+  color: var(--cyan);
+}
+
+@media (max-width: 860px), (pointer: coarse) {
+  .m-weapon.ultimate {
+    min-width: 0;
+  }
+
+  .m-weapon.ultimate b {
+    font-size: 0.62rem;
+  }
+}

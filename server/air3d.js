@@ -1,8 +1,13 @@
-import { PLANE_MAP, SKIN_MAP } from '../shared/catalog.js';
+import { AIR_MAPS, PLANE_MAP, SKIN_MAP } from '../shared/catalog.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_PLAYERS = 5;
+const MAP_IDS = new Set(AIR_MAPS.map((map) => map.id));
 const rooms = new Map();
+
+function normalizeMap(value) {
+  return MAP_IDS.has(value) ? value : 'blacksky';
+}
 
 function randomCode() {
   let code = '';
@@ -42,7 +47,9 @@ function roomPlayers(room) {
     hp: player.hp,
     maxHp: player.maxHp,
     alive: player.alive !== false,
-    kills: player.kills || 0
+    kills: player.kills || 0,
+    ready: Boolean(player.ready),
+    returned: Boolean(player.returned)
   }));
 }
 
@@ -50,6 +57,7 @@ function roomPayload(room) {
   return {
     code: room.code,
     mode: room.mode,
+    map: normalizeMap(room.map),
     status: room.status,
     hostSlot: 0,
     maxPlayers: MAX_PLAYERS,
@@ -98,21 +106,52 @@ function destroyRoom(room, message = '房间已解散。') {
   }
 }
 
+function resetRoomToWaiting(room) {
+  if (room.timer) clearTimeout(room.timer);
+  room.timer = null;
+  room.status = 'waiting';
+  for (const player of room.players) {
+    player.hp = player.maxHp || maxHpFor(player.profile.plane);
+    player.maxHp = player.maxHp || maxHpFor(player.profile.plane);
+    player.alive = true;
+    player.kills = 0;
+    player.ready = false;
+    player.returned = false;
+  }
+}
+
+function maybeReopenRoom(room) {
+  if (!room || !['active', 'ended'].includes(room.status)) return false;
+  const players = sortPlayers(room);
+  if (!players.length) return false;
+  if (room.status === 'ended' && players.every((player) => player.returned)) {
+    resetRoomToWaiting(room);
+    broadcast(room, 'air3d:room', roomPayload(room));
+    return true;
+  }
+  broadcast(room, 'air3d:room', roomPayload(room));
+  return false;
+}
+
 function startRoom(room) {
   if (room.status !== 'waiting') return false;
   const players = sortPlayers(room);
   if (players.length < 2) return false;
+  if (!players.every((player) => player.ready)) return false;
   for (const player of players) {
     player.maxHp = maxHpFor(player.profile.plane);
     player.hp = player.maxHp;
     player.alive = true;
     player.kills = 0;
+    player.ready = false;
+    player.returned = false;
   }
   room.status = 'countdown';
   const startAt = Date.now() + 3600;
   const matched = {
     code: room.code,
     mode: room.mode,
+    map: normalizeMap(room.map),
     startAt,
     hostSlot: 0,
     maxPlayers: MAX_PLAYERS,
@@ -134,6 +173,7 @@ function endPvpRoom(room) {
   if (alive.length > 1) return;
   room.status = 'ended';
   if (room.timer) clearTimeout(room.timer);
+  for (const player of sortPlayers(room)) player.returned = false;
   broadcast(room, 'air3d:end', {
     serverResult: true,
     pvp: true,
@@ -174,7 +214,11 @@ function leaveRoom(socket, message = null) {
   }
 
   if (room.status === 'ended') {
-    if (!sortPlayers(room).length) destroyRoom(room);
+    if (!sortPlayers(room).length) {
+      destroyRoom(room);
+      return;
+    }
+    maybeReopenRoom(room);
     return;
   }
 
@@ -207,6 +251,7 @@ export function attachAir3DServer(io) {
       const room = {
         code: randomCode(),
         mode,
+        map: normalizeMap(payload?.map),
         players: [{
           slot: 0,
           socket,
@@ -215,6 +260,8 @@ export function attachAir3DServer(io) {
           maxHp,
           alive: true,
           kills: 0,
+          ready: false,
+          returned: false,
           left: false
         }],
         status: 'waiting',
@@ -252,6 +299,7 @@ export function attachAir3DServer(io) {
       const profile = makeProfile(payload);
       const maxHp = maxHpFor(profile.plane);
       const slot = freeSlot(room);
+      for (const player of sortPlayers(room)) player.ready = false;
       room.players.push({
         slot,
         socket,
@@ -260,6 +308,8 @@ export function attachAir3DServer(io) {
         maxHp,
         alive: true,
         kills: 0,
+        ready: false,
+        returned: false,
         left: false
       });
       socket.data.air3dCode = room.code;
@@ -268,7 +318,6 @@ export function attachAir3DServer(io) {
         ack({ ok: true, code: room.code, slot, mode: room.mode, maxPlayers: MAX_PLAYERS, room: roomPayload(room) });
       }
       broadcast(room, 'air3d:room', roomPayload(room));
-      if (sortPlayers(room).length >= MAX_PLAYERS) startRoom(room);
     });
 
     socket.on('air3d:start', (payload, ack) => {
@@ -282,8 +331,66 @@ export function attachAir3DServer(io) {
         if (typeof ack === 'function') ack({ ok: false, error: '至少需要 2 名飞行员才能开始。' });
         return;
       }
+      if (room.status !== 'waiting') {
+        if (typeof ack === 'function') ack({ ok: false, error: '当前无法开始战斗。' });
+        return;
+      }
+      if (!sortPlayers(room).every((player) => player.ready)) {
+        if (typeof ack === 'function') ack({ ok: false, error: '全体飞行员准备后才能开始。' });
+        return;
+      }
       const started = startRoom(room);
       if (typeof ack === 'function') ack({ ok: started });
+    });
+
+    socket.on('air3d:ready', (payload, ack) => {
+      const room = rooms.get(socket.data.air3dCode);
+      const slot = room ? findSlot(room, socket) : -1;
+      if (!room || slot < 0) {
+        if (typeof ack === 'function') ack({ ok: false, error: '你不在这个房间中。' });
+        return;
+      }
+      if (room.status !== 'waiting') {
+        if (typeof ack === 'function') ack({ ok: false, error: '战斗已经开始，暂时无法准备。' });
+        return;
+      }
+      const player = room.players.find((entry) => entry.slot === slot);
+      if (!player) return;
+      player.ready = Boolean(payload?.ready);
+      broadcast(room, 'air3d:room', roomPayload(room));
+      if (typeof ack === 'function') ack({ ok: true });
+    });
+
+    socket.on('air3d:map', (payload, ack) => {
+      const room = rooms.get(socket.data.air3dCode);
+      const slot = room ? findSlot(room, socket) : -1;
+      if (!room || slot !== 0) {
+        if (typeof ack === 'function') ack({ ok: false, error: '只有房主可以选择地图。' });
+        return;
+      }
+      if (room.status !== 'waiting') {
+        if (typeof ack === 'function') ack({ ok: false, error: '战斗已经开始，无法更换地图。' });
+        return;
+      }
+      room.map = normalizeMap(payload?.map);
+      broadcast(room, 'air3d:room', roomPayload(room));
+      if (typeof ack === 'function') ack({ ok: true });
+    });
+
+    socket.on('air3d:return', (payload, ack) => {
+      const room = rooms.get(socket.data.air3dCode);
+      const slot = room ? findSlot(room, socket) : -1;
+      if (!room || slot < 0) {
+        if (typeof ack === 'function') ack({ ok: false, error: '房间已经解散。' });
+        return;
+      }
+      const player = room.players.find((entry) => entry.slot === slot);
+      if (!player) return;
+      if (room.status === 'ended' || room.status === 'active') {
+        player.returned = true;
+        maybeReopenRoom(room);
+      }
+      if (typeof ack === 'function') ack({ ok: true });
     });
 
     socket.on('air3d:leave', () => {
@@ -377,6 +484,11 @@ export function attachAir3DServer(io) {
       const room = rooms.get(socket.data.air3dCode);
       if (!room || !allow(socket, 'end', 5, 1000)) return;
       if (findSlot(room, socket) !== 0) return;
+      if (room.status === 'active') {
+        room.status = 'ended';
+        if (room.timer) clearTimeout(room.timer);
+        for (const player of sortPlayers(room)) player.returned = false;
+      }
       broadcast(room, 'air3d:end', payload || {}, socket);
     });
 

@@ -1,4 +1,4 @@
-import { getPlane, getSkin, PLANES, PVP, SKINS } from '../../shared/catalog.js';
+import { getMap, getPlane, getSkin, PLANES, PVP, SKINS } from '../../shared/catalog.js';
 import { api } from './api.js';
 import { audio } from './audio.js';
 import { CombatGame, DuelGame } from './game.js';
@@ -12,6 +12,7 @@ const FREE_SKINS = new Set(SKINS.filter((skin) => skin.unlock === 'free').map((s
 const STORAGE = {
   token: 'sky_strike_token',
   loadout: 'sky_strike_loadout',
+  map: 'sky_strike_map',
   guestName: 'sky_strike_guest_name',
   guestStats: 'sky_strike_guest_stats',
   easter: 'sky_strike_easter'
@@ -85,6 +86,7 @@ const state = {
   guestStats: { ...guestStatsDefault(), ...safeRead(STORAGE.guestStats, {}) },
   selectedPlane: getPlane(localLoadout.plane).id,
   selectedSkin: getSkin(localLoadout.skin).id,
+  selectedMap: getMap(safeRead(STORAGE.map, 'blacksky')).id,
   currentScreen: 'home',
   authMode: 'login',
   afterAuth: null,
@@ -153,6 +155,7 @@ function cacheDom() {
   dom.hangarPlaneCode = $('#hangar-plane-code');
   dom.hangarPlaneName = $('#hangar-plane-name');
   dom.hangarPlaneTagline = $('#hangar-plane-tagline');
+  dom.hangarPlaneUltimate = $('#hangar-plane-ultimate');
   dom.hangarSkinBadge = $('#hangar-skin-badge');
   dom.hangarStats = $('#hangar-stats');
   dom.planeList = $('#plane-list');
@@ -266,6 +269,9 @@ function cacheDom() {
   dom.missionMissiles = $('#mission-missiles');
   dom.missionFlares = $('#mission-flares');
   dom.missionCannonAmmo = $('#mission-cannon-ammo');
+  dom.missionWeaponUltimate = $('#mission-weapon-ultimate');
+  dom.missionUltimateName = $('#mission-ultimate-name');
+  dom.missionUltimateCd = $('#mission-ultimate-cd');
   dom.missionBoost = $('#mission-boost');
   dom.missionKillfeed = $('#mission-killfeed');
   dom.missionMessage = $('#mission-message');
@@ -280,6 +286,8 @@ function cacheDom() {
   dom.missionCoverBadge = $('#mission-cover-badge');
   dom.missionBriefing = $('#mission-briefing');
   dom.missionBriefPlane = $('#mission-brief-plane');
+  dom.missionBriefMap = $('#mission-brief-map');
+  dom.missionMapTagline = $('#mission-map-tagline');
   dom.missionStartBtn = $('#mission-start-btn');
   dom.missionCancelBtn = $('#mission-cancel-btn');
   dom.missionPause = $('#mission-pause');
@@ -328,6 +336,13 @@ function cacheDom() {
   dom.air3dWaitingMode = $('#air3d-waiting-mode');
   dom.air3dSlotList = $('#air3d-slot-list');
   dom.air3dStartBtn = $('#air3d-start-btn');
+  dom.air3dReadyBtn = $('#air3d-ready-btn');
+  dom.air3dReadyHint = $('#air3d-ready-hint');
+  dom.air3dWaitingMapName = $('#air3d-waiting-map-name');
+  dom.air3dRoomMapOptions = $('#air3d-room-map-options');
+  dom.air3dWaitingMapHint = $('#air3d-waiting-map-hint');
+  dom.air3dMapButtons = $$('[data-air3d-map]');
+  dom.missionMapButtons = $$('[data-mission-map]');
   dom.air3dCopyBtn = $('#air3d-copy-btn');
   dom.air3dCancelBtn = $('#air3d-cancel-btn');
   dom.air3dModeButtons = $$('[data-air3d-mode]');
@@ -470,7 +485,14 @@ function bindEvents() {
   });
   dom.air3dCancelBtn.addEventListener('click', cancelAir3DRoom);
   dom.air3dStartBtn?.addEventListener('click', startAir3DRoom);
+  dom.air3dReadyBtn?.addEventListener('click', toggleAir3DReady);
   dom.air3dCopyBtn.addEventListener('click', copyAir3DInvite);
+  dom.air3dMapButtons.forEach((button) => {
+    button.addEventListener('click', () => selectMap(button.dataset.air3dMap));
+  });
+  dom.missionMapButtons.forEach((button) => {
+    button.addEventListener('click', () => selectMap(button.dataset.missionMap, { rebuildMission: true }));
+  });
 
   dom.planeList.addEventListener('click', (event) => {
     const card = event.target.closest('[data-plane]');
@@ -585,6 +607,9 @@ function showScreen(name) {
   state.currentScreen = name;
   dom.screens.forEach((screen) => screen.classList.toggle('is-active', screen.id === `screen-${name}`));
   dom.app.classList.toggle('in-game', name === 'game' || name === 'mission3d');
+  dom.app.classList.toggle('air3d-light', name === 'air3d');
+  dom.app.classList.toggle('home-sage', name === 'home');
+  menuScene?.setTheme(name === 'home' ? 'sage' : 'default');
 
   if (name === 'game' || name === 'mission3d') {
     menuScene?.stop();
@@ -647,50 +672,93 @@ function updateAir3DLobbyMode() {
   const skin = getSkin(state.selectedSkin);
   dom.air3dPlaneName.textContent = plane.name;
   dom.air3dSkinName.textContent = `${skin.name} · ${plane.role}`;
+  renderMapSelections();
 }
 
 function renderAir3DLobby() {
-  if (state.air3d.waiting && state.air3d.code) {
-    const pvp = state.air3d.mode === 'pvp';
-    dom.air3dLobby.hidden = true;
-    dom.air3dWaiting.hidden = false;
-    dom.air3dWaitingCode.textContent = state.air3d.code;
-    dom.air3dWaitingMode.textContent = pvp
-      ? `PVP · 5 人混战 · ${state.air3d.room?.players?.length || 1}/${state.air3d.room?.maxPlayers || 5}`
-      : `CO-OP · 多机编队 · ${state.air3d.room?.players?.length || 1}/${state.air3d.room?.maxPlayers || 5}`;
-    const players = [...(state.air3d.room?.players || [])].sort((a, b) => a.slot - b.slot);
-    const maxPlayers = state.air3d.room?.maxPlayers || 5;
-    if (dom.air3dSlotList) {
-      dom.air3dSlotList.innerHTML = Array.from({ length: maxPlayers }, (_, slot) => {
-        const player = players.find((entry) => entry.slot === slot);
-        const isSelf = slot === state.air3d.slot;
-        if (player) {
-          return `
-            <div class="wingman filled ${isSelf ? 'is-self' : ''}">
-              <span>${String(slot + 1).padStart(2, '0')}</span>
-              <b>${escapeHtml(player.name)}</b>
-              <small>${slot === 0 ? '房主' : escapeHtml(getPlane(player.plane).name)}</small>
-            </div>
-          `;
-        }
-        return `
-          <div class="wingman">
-            <span>${String(slot + 1).padStart(2, '0')}</span>
-            <b>等待接入...</b>
-            <small>${slot === 0 ? '房主' : pvp ? '挑战者' : '僚机'}</small>
-          </div>
-        `;
-      }).join('');
-    }
-    const isHost = state.air3d.slot === 0;
-    if (dom.air3dStartBtn) {
-      dom.air3dStartBtn.hidden = !isHost;
-      dom.air3dStartBtn.disabled = players.length < 2;
-      dom.air3dStartBtn.querySelector('span').textContent = players.length < 2 ? '等待飞行员' : '开始战斗';
-    }
-  } else {
+  if (!(state.air3d.waiting && state.air3d.code)) {
     dom.air3dLobby.hidden = false;
     dom.air3dWaiting.hidden = true;
+    renderMapSelections();
+    return;
+  }
+  const pvp = state.air3d.mode === 'pvp';
+  const room = state.air3d.room || {};
+  const players = [...(room.players || [])].sort((a, b) => a.slot - b.slot);
+  const maxPlayers = room.maxPlayers || 5;
+  const status = room.status || 'waiting';
+  const inLobby = status === 'waiting';
+  const isHost = state.air3d.slot === 0;
+  const self = players.find((player) => player.slot === state.air3d.slot);
+  const readyCount = players.filter((player) => player.ready).length;
+  const allReady = players.length >= 2 && players.every((player) => player.ready);
+  const returnedCount = players.filter((player) => player.returned).length;
+  const map = getMap(room.map || state.selectedMap);
+
+  dom.air3dLobby.hidden = true;
+  dom.air3dWaiting.hidden = false;
+  dom.air3dWaitingCode.textContent = state.air3d.code;
+  if (dom.air3dWaitingMapName) dom.air3dWaitingMapName.textContent = map.name;
+  if (dom.air3dRoomMapOptions) dom.air3dRoomMapOptions.hidden = !(isHost && inLobby);
+  if (dom.air3dWaitingMapHint) {
+    dom.air3dWaitingMapHint.textContent = isHost && inLobby ? '房主可选择作战地图' : '地图由房主选择';
+  }
+  dom.air3dWaitingMode.textContent = inLobby
+    ? `${pvp ? 'PVP · 5 人混战' : 'CO-OP · 多机编队'} · ${players.length}/${maxPlayers} · ${readyCount}/${players.length || 1} 已准备`
+    : `等待其他飞行员返回房间 · ${returnedCount}/${players.length || 1} 已返回`;
+  if (dom.air3dSlotList) {
+    dom.air3dSlotList.innerHTML = Array.from({ length: maxPlayers }, (_, slot) => {
+      const player = players.find((entry) => entry.slot === slot);
+      const isSelf = slot === state.air3d.slot;
+      if (player) {
+        const role = slot === 0 ? '房主' : getPlane(player.plane).name;
+        const stateLabel = inLobby ? (player.ready ? '已准备' : '未准备') : (player.returned ? '已返回' : '战斗中');
+        return `
+          <div class="wingman filled ${isSelf ? 'is-self' : ''} ${player.ready ? 'is-ready' : ''}">
+            <span>${String(slot + 1).padStart(2, '0')}</span>
+            <b>${escapeHtml(player.name)}</b>
+            <small>${role} · ${stateLabel}</small>
+          </div>
+        `;
+      }
+      return `
+        <div class="wingman">
+          <span>${String(slot + 1).padStart(2, '0')}</span>
+          <b>等待接入...</b>
+          <small>${slot === 0 ? '房主' : pvp ? '挑战者' : '僚机'}</small>
+        </div>
+      `;
+    }).join('');
+  }
+  if (dom.air3dReadyBtn) {
+    const ready = Boolean(self?.ready);
+    dom.air3dReadyBtn.hidden = !inLobby;
+    dom.air3dReadyBtn.disabled = !inLobby;
+    dom.air3dReadyBtn.classList.toggle('is-ready', ready);
+    dom.air3dReadyBtn.querySelector('span').textContent = ready ? '取消准备' : '准备';
+    dom.air3dReadyBtn.querySelector('small').textContent = ready ? 'CANCEL READY' : 'READY';
+  }
+  if (dom.air3dReadyHint) {
+    if (!inLobby) {
+      dom.air3dReadyHint.textContent = '等待全体飞行员返回房间，返回后可重新准备并开始下一局';
+    } else if (players.length < 2) {
+      dom.air3dReadyHint.textContent = '至少需要 2 名飞行员才能开始战斗';
+    } else if (allReady) {
+      dom.air3dReadyHint.textContent = '全体飞行员已准备，房主可以点击开始游戏';
+    } else {
+      dom.air3dReadyHint.textContent = `还有 ${Math.max(0, players.length - readyCount)} 名飞行员未准备`;
+    }
+  }
+  if (dom.air3dStartBtn) {
+    dom.air3dStartBtn.hidden = !isHost;
+    dom.air3dStartBtn.disabled = !inLobby || !allReady;
+    dom.air3dStartBtn.querySelector('span').textContent = !inLobby
+      ? '等待飞行员返回'
+      : players.length < 2
+        ? '等待飞行员'
+        : allReady
+          ? '开始游戏'
+          : '等待全体准备';
   }
 }
 
@@ -698,6 +766,15 @@ function startAir3DRoom() {
   if (!state.socket) return;
   state.socket.emit('air3d:start', {}, (result) => {
     if (result?.ok === false) toast(result.error || '暂时无法开始战斗。', 'error');
+  });
+}
+
+function toggleAir3DReady() {
+  if (!state.socket || !state.air3d.waiting) return;
+  const self = state.air3d.room?.players?.find((player) => player.slot === state.air3d.slot);
+  const ready = !self?.ready;
+  state.socket.emit('air3d:ready', { ready }, (result) => {
+    if (result?.ok === false) toast(result.error || '暂时无法切换准备状态。', 'error');
   });
 }
 
@@ -721,7 +798,7 @@ async function loadAir3DNetwork() {
 function createAir3DRoom() {
   if (!ensureSocket()) return;
   audio.init();
-  state.socket.emit('air3d:create', { mode: state.air3d.selectedMode, ...getProfilePayload() }, (result) => {
+  state.socket.emit('air3d:create', { mode: state.air3d.selectedMode, map: state.selectedMap, ...getProfilePayload() }, (result) => {
     if (!result?.ok) {
       toast(result?.error || '创建 3D 房间失败。', 'error');
       return;
@@ -731,6 +808,7 @@ function createAir3DRoom() {
     state.air3d.slot = result.slot;
     state.air3d.room = result.room;
     state.air3d.waiting = true;
+    if (result.room?.map) state.selectedMap = getMap(result.room.map).id;
     renderAir3DLobby();
     toast(result.mode === 'pvp' ? `3D 对决房间 ${result.code} 已建立（最多 5 人）。` : `编队房间 ${result.code} 已建立（最多 5 人）。`);
   });
@@ -753,6 +831,7 @@ function joinAir3DRoom(code) {
     state.air3d.slot = result.slot;
     state.air3d.room = result.room;
     state.air3d.waiting = true;
+    if (result.room?.map) state.selectedMap = getMap(result.room.map).id;
     renderAir3DLobby();
     toast('已接入 3D 战场，等待房主开始战斗...');
   });
@@ -848,6 +927,7 @@ function prepareAir3DMatch(payload) {
       canvas: dom.missionCanvas,
       plane: state.selectedPlane,
       skin: state.selectedSkin,
+      map: payload.map || state.air3d.room?.map || state.selectedMap,
       network: {
         role: slot === 0 ? 'host' : 'guest',
         mode: payload.mode,
@@ -981,16 +1061,52 @@ function showAir3DResult(result, success) {
     <span>${result.networkMode === 'pvp' ? '对手' : '僚机'}：${escapeHtml(foeNames || '未知')}</span>
   `;
   dom.missionEndActions.innerHTML = '';
-  const lobby = makeActionButton('返回 3D 大厅', 'LAN LOBBY', true, () => {
-    cleanupAir3D();
-    openAir3DLobby();
+  const room = makeActionButton('返回房间', 'ROOM', true, () => {
+    returnToAir3DRoom();
   });
   const home = makeActionButton('返回基地', 'HOME', false, () => {
     cleanupAir3D();
     goHome();
   });
-  dom.missionEndActions.append(lobby, home);
+  dom.missionEndActions.append(room, home);
   audio.stopFlightEngine();
+}
+
+function returnToAir3DRoom() {
+  if (!state.air3d.code) {
+    cleanupAir3D();
+    openAir3DLobby();
+    return;
+  }
+  state.socket?.emit('air3d:return');
+  const mission = state.air3d.mission;
+  if (mission) {
+    mission.destroy();
+    if (state.mission === mission) state.mission = null;
+    state.air3d.mission = null;
+  }
+  stopRadarLoop();
+  clearAir3DCountdown();
+  state.air3d.active = false;
+  state.air3d.waiting = true;
+  state.air3d.resultSent = false;
+  state.missionHudSnapshot = null;
+  dom.missionEnd.hidden = true;
+  dom.missionHud.hidden = true;
+  dom.missionPause.hidden = true;
+  dom.missileWarning.hidden = true;
+  dom.missionTargetMarker.hidden = true;
+  dom.missionMessage.hidden = true;
+  dom.missionCloudOverlay.style.opacity = '0';
+  dom.missionCoverBadge.hidden = true;
+  dom.missionPvpBanner.hidden = true;
+  dom.missionWingmanBadge.hidden = true;
+  dom.missionLanCountdown.hidden = true;
+  dom.missionKillcountWrap.style.display = '';
+  showScreen('air3d');
+  renderAir3DLobby();
+  audio.stopFlightEngine();
+  audio.startAmbience('menu');
 }
 
 function goHome() {
@@ -1066,6 +1182,43 @@ async function refreshOnline() {
 
 function saveLoadout() {
   safeWrite(STORAGE.loadout, { plane: state.selectedPlane, skin: state.selectedSkin });
+}
+
+function saveSelectedMap() {
+  safeWrite(STORAGE.map, state.selectedMap);
+}
+
+function renderMapSelections() {
+  const map = getMap(state.selectedMap);
+  dom.air3dMapButtons?.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.air3dMap === map.id);
+  });
+  dom.missionMapButtons?.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.missionMap === map.id);
+  });
+  if (dom.missionBriefMap) dom.missionBriefMap.textContent = map.name;
+  if (dom.missionMapTagline) dom.missionMapTagline.textContent = map.tagline;
+  if (dom.air3dWaitingMapName) {
+    const roomMap = state.air3d.slot === 0 && state.air3d.waiting
+      ? state.selectedMap
+      : (state.air3d.room?.map || map.id);
+    dom.air3dWaitingMapName.textContent = getMap(roomMap).name;
+  }
+}
+
+function selectMap(mapId, { rebuildMission = false } = {}) {
+  const map = getMap(mapId);
+  const changed = state.selectedMap !== map.id;
+  state.selectedMap = map.id;
+  saveSelectedMap();
+  renderMapSelections();
+  if (state.air3d.waiting && state.air3d.slot === 0) {
+    state.socket?.emit('air3d:map', { map: map.id });
+  }
+  if (rebuildMission && changed && state.mission && !state.air3d.active) {
+    cleanupMission3D();
+    openMission3D();
+  }
 }
 
 function ownedPlanes() {
@@ -1202,6 +1355,11 @@ function renderHangar() {
   dom.hangarPlaneCode.textContent = plane.code;
   dom.hangarPlaneName.textContent = plane.name;
   dom.hangarPlaneTagline.textContent = plane.tagline;
+  if (dom.hangarPlaneUltimate) {
+    dom.hangarPlaneUltimate.textContent = plane.ultimate
+      ? `专属大招 · ${plane.ultimate.name}（冷却 ${plane.ultimate.cooldown}s）：${plane.ultimate.desc}`
+      : '';
+  }
   dom.hangarSkinBadge.textContent = skin.name;
   dom.hangarCredits.textContent = formatNumber(state.user?.credits || 0);
   dom.skinCount.textContent = `${SKINS.length} COATINGS`;
@@ -1801,6 +1959,7 @@ function initSocket() {
     state.air3d.room = payload;
     state.air3d.code = payload.code || state.air3d.code;
     state.air3d.mode = payload.mode || state.air3d.mode;
+    if (payload.map) state.selectedMap = getMap(payload.map).id;
     if (state.air3d.waiting) renderAir3DLobby();
   });
 
@@ -2137,7 +2296,11 @@ function openMission3D({ autoStart = false } = {}) {
 
   const plane = getPlane(state.selectedPlane);
   const skin = getSkin(state.selectedSkin);
+  const map = getMap(state.selectedMap);
   dom.missionBriefPlane.textContent = `${plane.name} · ${skin.name}`;
+  dom.missionBriefMap.textContent = map.name;
+  dom.missionMapTagline.textContent = map.tagline;
+  renderMapSelections();
   dom.missionPlaneName.textContent = plane.code;
   dom.missionRequired.textContent = '6';
   dom.missionKills.textContent = '0';
@@ -2151,7 +2314,11 @@ function openMission3D({ autoStart = false } = {}) {
   dom.missionMissiles.textContent = '06';
   dom.missionFlares.textContent = '03';
   dom.missionBoost.textContent = '100';
-  if (dom.missionCannonAmmo) dom.missionCannonAmmo.textContent = String(plane.loadout?.ammo || 360);
+  if (dom.missionCannonAmmo) dom.missionCannonAmmo.textContent = String(plane.loadout?.ammo || 220);
+  if (dom.missionUltimateName) dom.missionUltimateName.textContent = plane.ultimate?.name || '苍穹风暴';
+  if (dom.missionUltimateCd) dom.missionUltimateCd.textContent = 'READY';
+  dom.missionWeaponUltimate?.classList.add('is-ready');
+  dom.missionWeaponUltimate?.classList.remove('is-active');
   dom.missionLockStatus.textContent = 'NO TARGET';
   dom.missionLockFill.style.width = '0%';
   dom.missionLockHint.textContent = '将目标保持在准星内锁定，或先发射导弹再制导';
@@ -2163,6 +2330,7 @@ function openMission3D({ autoStart = false } = {}) {
       canvas: dom.missionCanvas,
       plane: state.selectedPlane,
       skin: state.selectedSkin,
+      map: state.selectedMap,
       callbacks: {
         onHud: updateMissionHud,
         onEnd: handleMissionEnd,
@@ -2361,6 +2529,15 @@ function updateMissionHud(snapshot) {
     const ammo = Math.max(0, Number(snapshot.cannonAmmo) || 0);
     dom.missionCannonAmmo.textContent = String(ammo).padStart(3, '0');
     dom.missionCannonAmmo.classList.toggle('is-empty', ammo <= 0);
+  }
+  if (snapshot.ultimate) {
+    const ultimate = snapshot.ultimate;
+    if (dom.missionUltimateName) dom.missionUltimateName.textContent = ultimate.name;
+    if (dom.missionUltimateCd) {
+      dom.missionUltimateCd.textContent = ultimate.ready ? 'READY' : `${Math.ceil(ultimate.cooldown)}S`;
+    }
+    dom.missionWeaponUltimate?.classList.toggle('is-ready', Boolean(ultimate.ready));
+    dom.missionWeaponUltimate?.classList.toggle('is-active', Boolean(ultimate.active));
   }
 
   const lock = snapshot.lock;

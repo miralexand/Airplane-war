@@ -10,13 +10,20 @@ export const PLANES = [
     unlock: 'free',
     price: 0,
     stats: { speed: 3, power: 3, armor: 3, handling: 4 },
+    ultimate: {
+      id: 'storm',
+      name: '苍穹风暴',
+      short: '风暴',
+      cooldown: 48,
+      desc: '同时锁定最多 4 个目标，齐射高伤追踪导弹。'
+    },
     loadout: {
       hp: 110,
       speed: 430,
       fireDelay: 0.135,
       damage: 12,
       cannonDamage: 5.5,
-      ammo: 360,
+      ammo: 220,
       handling: 4,
       bulletSpeed: 940,
       pattern: 'single',
@@ -34,13 +41,20 @@ export const PLANES = [
     unlock: 'free',
     price: 0,
     stats: { speed: 5, power: 4, armor: 1, handling: 5 },
+    ultimate: {
+      id: 'afterburner',
+      name: '超频突袭',
+      short: '超频',
+      cooldown: 52,
+      desc: '6 秒极限加速并免疫伤害，强行穿过敌方火力网。'
+    },
     loadout: {
       hp: 82,
       speed: 520,
       fireDelay: 0.098,
       damage: 4.8,
       cannonDamage: 2.8,
-      ammo: 480,
+      ammo: 260,
       handling: 5,
       bulletSpeed: 1020,
       pattern: 'twin',
@@ -58,13 +72,20 @@ export const PLANES = [
     unlock: 'free',
     price: 0,
     stats: { speed: 2, power: 5, armor: 5, handling: 2 },
+    ultimate: {
+      id: 'thunder',
+      name: '雷霆万钧',
+      short: '雷霆',
+      cooldown: 55,
+      desc: '释放环形等离子冲击，重创周围 1.6 公里内所有敌机。'
+    },
     loadout: {
       hp: 172,
       speed: 340,
       fireDelay: 0.2,
       damage: 8.5,
       cannonDamage: 4.2,
-      ammo: 300,
+      ammo: 180,
       handling: 2,
       bulletSpeed: 830,
       pattern: 'spread',
@@ -82,13 +103,20 @@ export const PLANES = [
     unlock: 'premium',
     price: 5000,
     stats: { speed: 4, power: 5, armor: 3, handling: 5 },
+    ultimate: {
+      id: 'singularity',
+      name: '相位奇点',
+      short: '奇点',
+      cooldown: 62,
+      desc: '投放引力奇点，持续牵引并灼烧半径内的敌方编队。'
+    },
     loadout: {
       hp: 120,
       speed: 475,
       fireDelay: 0.112,
       damage: 7.4,
       cannonDamage: 3.6,
-      ammo: 420,
+      ammo: 240,
       handling: 5,
       bulletSpeed: 1060,
       pattern: 'pulse',
@@ -106,13 +134,20 @@ export const PLANES = [
     unlock: 'free',
     price: 0,
     stats: { speed: 1, power: 4, armor: 5, handling: 1 },
+    ultimate: {
+      id: 'fortress',
+      name: '铁壁领域',
+      short: '铁壁',
+      cooldown: 60,
+      desc: '修复 90 点结构并展开 8 秒能量壁垒，大幅降低所受伤害。'
+    },
     loadout: {
       hp: 280,
       speed: 300,
       fireDelay: 0.17,
       damage: 7.2,
       cannonDamage: 5.8,
-      ammo: 600,
+      ammo: 320,
       handling: 1,
       bulletSpeed: 760,
       pattern: 'spread',
@@ -237,11 +272,30 @@ export const SKINS = [
   }
 ];
 
+export const AIR_MAPS = [
+  {
+    id: 'blacksky',
+    name: '黑幕空域',
+    en: 'BLACK SKY',
+    tagline: '暮色云海与深海群岛，经典的高空拦截战场。',
+    accent: '#57e5ff'
+  },
+  {
+    id: 'redmesa',
+    name: '赤沙峡谷',
+    en: 'RED MESA',
+    tagline: '赤色台地拔地而起，在狭窄峡谷间低空缠斗。',
+    accent: '#ffb15e'
+  }
+];
+
 export const PLANE_MAP = Object.fromEntries(PLANES.map((plane) => [plane.id, plane]));
 export const SKIN_MAP = Object.fromEntries(SKINS.map((skin) => [skin.id, skin]));
+export const MAP_MAP = Object.fromEntries(AIR_MAPS.map((map) => [map.id, map]));
 
 export const DEFAULT_PLANE = 'falcon';
 export const DEFAULT_SKIN = 'chrome';
+export const DEFAULT_MAP = 'blacksky';
 
 export const MODES = {
   campaign: {
@@ -273,6 +327,10 @@ export function getPlane(id) {
 
 export function getSkin(id) {
   return SKIN_MAP[id] || SKIN_MAP[DEFAULT_SKIN];
+}
+
+export function getMap(id) {
+  return MAP_MAP[id] || MAP_MAP[DEFAULT_MAP];
 }
 
 export const PVP = {

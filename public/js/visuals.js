@@ -457,11 +457,16 @@ export class MenuScene {
     this.time = 0;
     this.last = 0;
     this.running = false;
+    this.theme = 'default';
     this.raf = null;
     this.resize = this.resize.bind(this);
     this.loop = this.loop.bind(this);
     window.addEventListener('resize', this.resize);
     this.resize();
+  }
+
+  setTheme(theme) {
+    this.theme = theme === 'sage' ? 'sage' : 'default';
   }
 
   resize() {
@@ -515,24 +520,25 @@ export class MenuScene {
     const ctx = this.ctx;
     const w = this.width;
     const h = this.height;
+    const sage = this.theme === 'sage';
     ctx.clearRect(0, 0, w, h);
 
     const sky = ctx.createLinearGradient(0, 0, w, h);
-    sky.addColorStop(0, '#040811');
-    sky.addColorStop(0.45, '#07121f');
-    sky.addColorStop(1, '#03060c');
+    sky.addColorStop(0, sage ? '#18221c' : '#040811');
+    sky.addColorStop(0.45, sage ? '#26362b' : '#07121f');
+    sky.addColorStop(1, sage ? '#121b16' : '#03060c');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, w, h);
 
     const nebula = ctx.createRadialGradient(w * 0.72, h * 0.36, 10, w * 0.72, h * 0.36, w * 0.46);
-    nebula.addColorStop(0, 'rgba(22, 111, 158, 0.15)');
-    nebula.addColorStop(0.45, 'rgba(21, 65, 112, 0.07)');
+    nebula.addColorStop(0, sage ? 'rgba(151, 181, 146, 0.16)' : 'rgba(22, 111, 158, 0.15)');
+    nebula.addColorStop(0.45, sage ? 'rgba(82, 112, 88, 0.09)' : 'rgba(21, 65, 112, 0.07)');
     nebula.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = nebula;
     ctx.fillRect(0, 0, w, h);
 
     const violet = ctx.createRadialGradient(w * 0.27, h * 0.76, 4, w * 0.27, h * 0.76, w * 0.36);
-    violet.addColorStop(0, 'rgba(74, 43, 111, 0.09)');
+    violet.addColorStop(0, sage ? 'rgba(196, 179, 139, 0.09)' : 'rgba(74, 43, 111, 0.09)');
     violet.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = violet;
     ctx.fillRect(0, 0, w, h);
@@ -543,7 +549,9 @@ export class MenuScene {
     for (let i = 0; i < 3; i += 1) {
       ctx.beginPath();
       ctx.ellipse(w * 0.5 + i * w * 0.13, h * 0.52 + i * 50, w * 0.55, h * 0.035, 0.08, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(47, 126, 170, ${0.018 + i * 0.007})`;
+      ctx.fillStyle = sage
+        ? `rgba(121, 151, 122, ${0.02 + i * 0.008})`
+        : `rgba(47, 126, 170, ${0.018 + i * 0.007})`;
       ctx.fill();
     }
     ctx.restore();
@@ -557,7 +565,9 @@ export class MenuScene {
       const alpha = 0.18 + star.z * 0.55;
       ctx.beginPath();
       ctx.arc(star.x, star.y, star.size * star.z, 0, Math.PI * 2);
-      ctx.fillStyle = star.hue ? `rgba(88, 227, 255, ${alpha})` : `rgba(206, 231, 246, ${alpha})`;
+      ctx.fillStyle = star.hue
+        ? (sage ? `rgba(201, 221, 191, ${alpha})` : `rgba(88, 227, 255, ${alpha})`)
+        : (sage ? `rgba(224, 232, 215, ${alpha})` : `rgba(206, 231, 246, ${alpha})`);
       ctx.fill();
     }
 
@@ -571,7 +581,7 @@ export class MenuScene {
       ctx.beginPath();
       ctx.moveTo(star.x, star.y);
       ctx.lineTo(star.x, star.y - star.speed * 0.45);
-      ctx.strokeStyle = `rgba(141, 213, 240, ${alpha})`;
+      ctx.strokeStyle = sage ? `rgba(190, 209, 184, ${alpha})` : `rgba(141, 213, 240, ${alpha})`;
       ctx.lineWidth = star.size * 0.7;
       ctx.stroke();
     }
@@ -598,8 +608,8 @@ export class MenuScene {
       }
       const alpha = m.life / m.maxLife;
       const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * 0.11, m.y - m.vy * 0.11);
-      grad.addColorStop(0, `rgba(226, 252, 255, ${alpha * 0.6})`);
-      grad.addColorStop(1, 'rgba(87, 229, 255, 0)');
+      grad.addColorStop(0, sage ? `rgba(237, 244, 226, ${alpha * 0.6})` : `rgba(226, 252, 255, ${alpha * 0.6})`);
+      grad.addColorStop(1, sage ? 'rgba(201, 221, 191, 0)' : 'rgba(87, 229, 255, 0)');
       ctx.beginPath();
       ctx.moveTo(m.x, m.y);
       ctx.lineTo(m.x - m.vx * 0.11, m.y - m.vy * 0.11);
@@ -610,16 +620,16 @@ export class MenuScene {
 
     const horizon = ctx.createLinearGradient(0, h * 0.72, 0, h);
     horizon.addColorStop(0, 'rgba(3, 8, 15, 0)');
-    horizon.addColorStop(1, 'rgba(2, 5, 10, 0.78)');
+    horizon.addColorStop(1, sage ? 'rgba(9, 16, 12, 0.78)' : 'rgba(2, 5, 10, 0.78)');
     ctx.fillStyle = horizon;
     ctx.fillRect(0, h * 0.68, w, h * 0.32);
 
     ctx.beginPath();
     const scanY = (this.time * 38) % (h + 200) - 100;
     const scan = ctx.createLinearGradient(0, scanY - 60, 0, scanY + 60);
-    scan.addColorStop(0, 'rgba(87, 229, 255, 0)');
-    scan.addColorStop(0.5, 'rgba(87, 229, 255, 0.018)');
-    scan.addColorStop(1, 'rgba(87, 229, 255, 0)');
+    scan.addColorStop(0, sage ? 'rgba(201, 221, 191, 0)' : 'rgba(87, 229, 255, 0)');
+    scan.addColorStop(0.5, sage ? 'rgba(201, 221, 191, 0.02)' : 'rgba(87, 229, 255, 0.018)');
+    scan.addColorStop(1, sage ? 'rgba(201, 221, 191, 0)' : 'rgba(87, 229, 255, 0)');
     ctx.fillStyle = scan;
     ctx.fillRect(0, scanY - 60, w, 120);
   }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <meta name="theme-color" content="#050810" />
+  <meta name="theme-color" content="#24352a" />
   <meta name="description" content="SKY//STRIKE 苍穹突击：浏览器 3D 街机空战。云层隐蔽、仿真雷达、可先发后锁的追踪导弹，以及 3D 局域网组队与 PvP。" />
   <title>SKY//STRIKE · 苍穹突击 · 3D 街机空战</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2357e5ff' d='M32 4 41 27 60 35 41 38 32 60 23 38 4 35 23 27z'/%3E%3C/svg%3E" />
@@ -149,6 +149,7 @@
             <span id="hangar-plane-code">FALCON / 01</span>
             <h3 id="hangar-plane-name">苍隼</h3>
             <p id="hangar-plane-tagline">风，是最锋利的刃。</p>
+            <p class="hangar-plane-ultimate" id="hangar-plane-ultimate"></p>
           </div>
           <div class="hangar-badge" id="hangar-skin-badge">苍穹银</div>
           <div class="hangar-stats" id="hangar-stats"></div>
@@ -293,6 +294,17 @@
               <span class="air3d-mode-tag">PvP</span>
             </button>
           </div>
+          <div class="air3d-map-picker">
+            <span class="eyebrow">BATTLE MAP</span>
+            <div class="air3d-map-options" id="air3d-map-options">
+              <button class="air3d-map-option is-active" type="button" data-air3d-map="blacksky">
+                <b>黑幕空域</b><small>BLACK SKY</small>
+              </button>
+              <button class="air3d-map-option" type="button" data-air3d-map="redmesa">
+                <b>赤沙峡谷</b><small>RED MESA</small>
+              </button>
+            </div>
+          </div>
           <div class="air3d-loadout">
             <span class="eyebrow">YOUR AIRCRAFT</span>
             <b id="air3d-plane-name">苍隼</b>
@@ -303,7 +315,7 @@
         <div class="air3d-card connect-panel">
           <span class="eyebrow">DATA LINK</span>
           <h3>建立 3D 战场</h3>
-          <p class="air3d-desc">创建房间后，将 5 位房间码或邀请链接发给同一 Wi-Fi 下的飞行员。最多 5 人接入，房主可随时开始；满员时自动开战。</p>
+          <p class="air3d-desc">创建房间后，将 5 位房间码或邀请链接发给同一 Wi-Fi 下的飞行员。最多 5 人接入，全体准备后由房主开始战斗；一局结束后会返回房间继续下一局。</p>
           <button class="btn btn-primary btn-full" id="air3d-create-btn"><span>创建编队房间</span><small>HOST</small></button>
           <form id="air3d-join-form" autocomplete="off">
             <label class="code-label" for="air3d-room-code">ROOM CODE</label>
@@ -340,9 +352,20 @@
         </div>
         <div class="wingman-slots wingman-slots-five" id="air3d-slot-list"></div>
         <div class="air3d-waiting-mode" id="air3d-waiting-mode">CO-OP · 多机编队</div>
+        <div class="air3d-waiting-map">
+          <span>BATTLE MAP</span>
+          <b id="air3d-waiting-map-name">黑幕空域</b>
+          <div class="air3d-room-map-options" id="air3d-room-map-options" hidden>
+            <button type="button" data-air3d-map="blacksky">黑幕空域</button>
+            <button type="button" data-air3d-map="redmesa">赤沙峡谷</button>
+          </div>
+          <small id="air3d-waiting-map-hint">房主可选择作战地图</small>
+        </div>
+        <div class="air3d-ready-hint" id="air3d-ready-hint">全体飞行员准备后，房主即可开始战斗</div>
         <div class="air3d-lobby-actions">
+          <button class="btn btn-ghost" id="air3d-ready-btn"><span>准备</span><small>READY</small></button>
           <button class="btn btn-primary" id="air3d-start-btn" hidden><span>开始战斗</span><small>LAUNCH</small></button>
-          <button class="text-btn danger" id="air3d-cancel-btn">取消房间</button>
+          <button class="text-btn danger" id="air3d-cancel-btn">离开房间</button>
         </div>
       </div>
     </section>
@@ -502,7 +525,7 @@
         <div class="mission-weapons">
           <div class="m-weapon" id="mission-weapon-cannon">
             <span class="m-weapon-icon gun"></span>
-            <div><b id="mission-cannon-ammo">360</b><small>GUN</small></div>
+            <div><b id="mission-cannon-ammo">220</b><small>GUN</small></div>
             <kbd>SPACE</kbd>
           </div>
           <div class="m-weapon" id="mission-weapon-missile">
@@ -514,6 +537,11 @@
             <span class="m-weapon-icon flare"></span>
             <div><b id="mission-flares">03</b><small>FLARE</small></div>
             <kbd>C</kbd>
+          </div>
+          <div class="m-weapon ultimate" id="mission-weapon-ultimate">
+            <span class="m-weapon-icon ultimate"></span>
+            <div><b id="mission-ultimate-name">苍穹风暴</b><small id="mission-ultimate-cd">READY</small></div>
+            <kbd>R</kbd>
           </div>
           <div class="m-weapon boost">
             <span class="m-weapon-icon boost"></span>
@@ -553,6 +581,7 @@
           <div class="keyhint"><kbd>SPACE</kbd><span>机炮（有限弹药）</span></div>
           <div class="keyhint"><kbd>F</kbd><span>发射导弹</span></div>
           <div class="keyhint"><kbd>C</kbd><span>释放诱弹</span></div>
+          <div class="keyhint"><kbd>R</kbd><span>专属大招</span></div>
           <div class="keyhint"><kbd>ESC</kbd><span>暂停 / 菜单</span></div>
         </div>
 
@@ -571,6 +600,7 @@
             <button class="m-btn missile" data-mission-action="missile"><span>导弹</span><small>MSL</small></button>
             <button class="m-btn boost" data-mission-action="boost"><span>加力</span><small>BOOST</small></button>
             <button class="m-btn cannon" data-mission-action="cannon"><span>机炮</span><small>GUN</small></button>
+            <button class="m-btn ultimate" data-mission-action="ultimate"><span>大招</span><small>ULT</small></button>
           </div>
         </div>
       </div>
@@ -591,8 +621,15 @@
             <div class="briefing-objectives">
               <div><span>任务目标</span><b>击落 06 架敌机</b></div>
               <div><span>行动时限</span><b>03:00</b></div>
-              <div><span>空域</span><b>BLACK SKY</b></div>
+              <div><span>空域</span><b id="mission-brief-map">黑幕空域</b></div>
               <div><span>座机</span><b id="mission-brief-plane">苍隼</b></div>
+            </div>
+            <div class="briefing-map-picker">
+              <div class="briefing-map-head"><span>作战地图</span><b id="mission-map-tagline">暮色云海与深海群岛，经典的高空拦截战场。</b></div>
+              <div class="briefing-map-options">
+                <button type="button" class="is-active" data-mission-map="blacksky"><b>黑幕空域</b><small>BLACK SKY</small></button>
+                <button type="button" data-mission-map="redmesa"><b>赤沙峡谷</b><small>RED MESA</small></button>
+              </div>
             </div>
             <div class="briefing-controls">
               <div class="briefing-control-group">
@@ -601,7 +638,7 @@
               </div>
               <div class="briefing-control-group">
                 <span>WEAPONS</span>
-                <p><kbd>SPACE</kbd> 机炮 <kbd>F</kbd> 追踪导弹（可先发射再制导） <kbd>C</kbd> 热诱弹</p>
+                <p><kbd>SPACE</kbd> 机炮 <kbd>F</kbd> 追踪导弹（可先发射再制导） <kbd>C</kbd> 热诱弹 <kbd>R</kbd> 专属大招</p>
               </div>
             </div>
             <div class="briefing-actions">
@@ -612,10 +649,11 @@
           <div class="briefing-side">
             <div class="briefing-emblem"><span>06</span><b>TARGETS</b></div>
             <ul>
-              <li><i></i> 机炮：无限弹药，近距离压制</li>
+              <li><i></i> 机炮：弹药有限，近距离压制</li>
               <li><i></i> 导弹：可先发射，再锁定目标完成制导</li>
               <li><i></i> 云层：遮蔽行踪，干扰敌方雷达与导弹</li>
               <li><i></i> 诱弹：欺骗来袭导弹</li>
+              <li><i></i> 专属大招：按 R 释放，冷却时间较长</li>
               <li><i></i> 大幅机动：摆脱近距离锁定</li>
             </ul>
           </div>

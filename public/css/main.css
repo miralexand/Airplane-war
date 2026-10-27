@@ -3906,3 +3906,237 @@ a {
 .in-game .noise {
   opacity: 0.18;
 }
+
+.hangar-plane-title .hangar-plane-ultimate {
+  margin-top: 7px;
+  max-width: 420px;
+  color: #a995d6;
+  font-size: 0.68rem;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- SAGE HOME THEME ---------- */
+
+#screen-home {
+  --cyan: #c6dcc0;
+  --cyan-2: #8fae94;
+  --line: rgba(198, 220, 192, 0.22);
+  --line-bright: rgba(214, 232, 204, 0.56);
+  --text: #f4f7ef;
+  --muted: #c2cfc2;
+  --muted-2: #92a596;
+  --gold: #d9c99a;
+  --rose: #c99a8c;
+  --green: #b8d7a8;
+  --danger: #d08d82;
+  background:
+    radial-gradient(1100px 620px at 78% 22%, rgba(166, 197, 167, 0.18), transparent 58%),
+    radial-gradient(900px 600px at 14% 84%, rgba(96, 128, 104, 0.22), transparent 60%),
+    linear-gradient(152deg, rgba(37, 49, 40, 0.94), rgba(71, 89, 73, 0.88) 52%, rgba(29, 40, 32, 0.96));
+}
+
+#app.home-sage .brand-mark {
+  color: #c6dcc0;
+  filter: drop-shadow(0 0 12px rgba(198, 220, 192, 0.42));
+}
+
+#app.home-sage .brand-text strong span {
+  color: #c6dcc0;
+}
+
+#app.home-sage .brand-text small,
+#app.home-sage .player-meta small,
+#app.home-sage .chevron {
+  color: #91a693;
+}
+
+#app.home-sage .online-pill {
+  border-color: rgba(198, 220, 192, 0.18);
+  background: rgba(24, 36, 29, 0.55);
+  color: #c9d7c7;
+}
+
+#app.home-sage .online-pill em {
+  color: #8ea492;
+}
+
+#app.home-sage .icon-btn {
+  border-color: rgba(198, 220, 192, 0.2);
+  background: rgba(24, 36, 29, 0.55);
+  color: #c3d4c2;
+}
+
+#app.home-sage .icon-btn:hover {
+  border-color: rgba(198, 220, 192, 0.58);
+  background: rgba(198, 220, 192, 0.08);
+  color: #e2efdb;
+}
+
+#app.home-sage .player-chip {
+  border-color: rgba(198, 220, 192, 0.2);
+  background: rgba(24, 36, 29, 0.6);
+}
+
+#app.home-sage .player-chip:hover {
+  border-color: rgba(198, 220, 192, 0.46);
+  background: rgba(31, 46, 36, 0.8);
+}
+
+#app.home-sage .avatar {
+  border-color: rgba(198, 220, 192, 0.32);
+  background:
+    linear-gradient(135deg, rgba(198, 220, 192, 0.26), rgba(88, 120, 98, 0.08)),
+    #18241c;
+  color: #dcebd7;
+}
+
+#screen-home .hero-copy .eyebrow::before {
+  background: #c6dcc0;
+  box-shadow: 0 0 12px rgba(198, 220, 192, 0.6);
+}
+
+#screen-home .hero-title {
+  filter: drop-shadow(0 24px 50px rgba(0, 0, 0, 0.46));
+}
+
+#screen-home .title-fill {
+  background: linear-gradient(115deg, #f9fcf5 8%, #dce8d6 38%, #a9c4a8 63%, #f1f6eb 90%);
+}
+
+#screen-home .title-stroke {
+  -webkit-text-stroke: 1.5px rgba(198, 220, 192, 0.62);
+  text-shadow: 0 0 42px rgba(166, 197, 167, 0.18);
+}
+
+#screen-home .hero-en {
+  color: rgba(198, 215, 196, 0.58);
+}
+
+#screen-home .hero-lead {
+  color: #b9c8b9;
+}
+
+#screen-home .hero-meta strong {
+  color: #eef4e8;
+}
+
+#screen-home .btn {
+  border-color: rgba(198, 220, 192, 0.22);
+  background: rgba(20, 32, 24, 0.62);
+  color: #eef4e8;
+}
+
+#screen-home .btn:hover {
+  border-color: rgba(198, 220, 192, 0.5);
+}
+
+#screen-home .btn-primary {
+  border-color: rgba(198, 220, 192, 0.56);
+  background:
+    linear-gradient(110deg, rgba(198, 220, 192, 0.2), rgba(124, 160, 132, 0.12)),
+    rgba(24, 38, 29, 0.9);
+  box-shadow: inset 0 0 22px rgba(198, 220, 192, 0.07), 0 8px 28px rgba(4, 14, 8, 0.36);
+  color: #f5f8f0;
+}
+
+#screen-home .btn-primary small {
+  color: rgba(198, 220, 192, 0.72);
+}
+
+#screen-home .btn-primary::before {
+  background: #c6dcc0;
+  box-shadow: 0 0 16px rgba(198, 220, 192, 0.65);
+}
+
+#screen-home .btn-primary:hover {
+  background:
+    linear-gradient(110deg, rgba(198, 220, 192, 0.3), rgba(124, 160, 132, 0.16)),
+    rgba(28, 44, 33, 0.94);
+  box-shadow: 0 0 34px rgba(198, 220, 192, 0.16);
+}
+
+#screen-home .btn-ghost {
+  background: rgba(20, 32, 24, 0.38);
+  color: #cfdccd;
+}
+
+#screen-home .btn-ghost:hover {
+  background: rgba(198, 220, 192, 0.08);
+}
+
+#screen-home #hero-canvas {
+  filter: drop-shadow(0 24px 80px rgba(146, 178, 148, 0.16));
+}
+
+#screen-home .orbit {
+  border-color: rgba(198, 220, 192, 0.16);
+  box-shadow: inset 0 0 50px rgba(198, 220, 192, 0.03);
+}
+
+#screen-home .hero-scan {
+  background: conic-gradient(from 90deg, transparent 0 290deg, rgba(198, 220, 192, 0.13) 330deg, transparent 360deg);
+}
+
+#screen-home .retical {
+  border-color: rgba(198, 220, 192, 0.22);
+}
+
+#screen-home .retical::before,
+#screen-home .retical::after {
+  background: rgba(198, 220, 192, 0.32);
+}
+
+#screen-home .telemetry b {
+  color: rgba(196, 216, 196, 0.72);
+}
+
+#screen-home .dock-card {
+  border-color: rgba(198, 220, 192, 0.16);
+  background: linear-gradient(110deg, rgba(28, 43, 33, 0.66), rgba(16, 25, 19, 0.45));
+}
+
+#screen-home .dock-card:hover {
+  border-color: rgba(198, 220, 192, 0.38);
+  background: linear-gradient(110deg, rgba(40, 58, 45, 0.88), rgba(20, 31, 24, 0.6));
+}
+
+#screen-home .dock-card.accent {
+  background: linear-gradient(110deg, rgba(78, 54, 45, 0.58), rgba(31, 23, 19, 0.44));
+}
+
+#screen-home .dock-icon.air3d {
+  color: #c6dcc0;
+  border-color: rgba(198, 220, 192, 0.3);
+  background: rgba(198, 220, 192, 0.08);
+  box-shadow: inset 0 0 14px rgba(198, 220, 192, 0.06);
+}
+
+#screen-home .dock-icon.rank {
+  color: #d9c99a;
+  border-color: rgba(217, 201, 154, 0.24);
+  background: rgba(217, 201, 154, 0.05);
+}
+
+#screen-home .dock-icon.gift {
+  color: #c8b6a8;
+  border-color: rgba(200, 182, 168, 0.22);
+  background: rgba(200, 182, 168, 0.05);
+}
+
+#screen-home .hero-meta span,
+#screen-home .home-footer,
+#screen-home .dock-text small,
+#screen-home .dock-arrow {
+  color: #92a596;
+}
+
+#app.home-sage .online-pill i {
+  background: #b8d7a8;
+  box-shadow: 0 0 10px rgba(184, 215, 168, 0.85);
+}
+
+#screen-home .status-dot {
+  background: #b8d7a8;
+  box-shadow: 0 0 9px #b8d7a8;
+}

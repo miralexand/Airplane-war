@@ -1,5 +1,5 @@
 /* =========================================================
-   SKY//STRIKE — 3D LAN LOBBY & MULTIPLAYER HUD
+   SKY//STRIKE 闂?3D LAN LOBBY & MULTIPLAYER HUD
    ========================================================= */
 
 .air3d-layout {
@@ -581,4 +581,535 @@
 @media (max-width: 720px) {
   .air3d-mode-copy em { font-size: 0.62rem; }
   .air3d-desc { font-size: 0.68rem; }
+}
+
+/* ---------- BRIGHT 3D LOBBY ---------- */
+
+#screen-air3d {
+  background:
+    radial-gradient(1100px 520px at 12% 4%, rgba(246, 250, 242, 0.92), transparent 62%),
+    radial-gradient(900px 560px at 96% 100%, rgba(201, 214, 184, 0.45), transparent 58%),
+    linear-gradient(155deg, #eef5ec 0%, #d5e4d6 46%, #fafcf6 100%);
+  color: #24352a;
+}
+
+#app.air3d-light .topbar {
+  background: linear-gradient(180deg, rgba(246, 250, 242, 0.94), rgba(250, 253, 246, 0.57) 72%, transparent);
+}
+
+#app.air3d-light .brand-text strong {
+  color: #1e2f25;
+}
+
+#app.air3d-light .brand-text small,
+#app.air3d-light .online-pill em {
+  color: #6d8272;
+}
+
+#app.air3d-light .online-pill {
+  border-color: rgba(49, 74, 58, 0.18);
+  background: rgba(250, 253, 246, 0.8);
+  color: #3f5f4b;
+}
+
+#app.air3d-light .icon-btn,
+#app.air3d-light .player-chip {
+  color: #3f5f4b;
+  border-color: rgba(49, 74, 58, 0.2);
+  background: rgba(250, 253, 246, 0.74);
+}
+
+#app.air3d-light .player-meta b {
+  color: #1e2f25;
+}
+
+#app.air3d-light .player-meta small {
+  color: #6d8272;
+}
+
+#screen-air3d .page-title h2 {
+  color: #1e2f25;
+  font-size: clamp(1.65rem, 2.8vw, 2.5rem);
+}
+
+#screen-air3d .page-title h2 span {
+  color: #5f8368;
+}
+
+#screen-air3d .eyebrow {
+  color: #5f7f67;
+  font-size: 0.7rem;
+}
+
+#screen-air3d .back-btn {
+  color: #3f5f4b;
+  border-color: rgba(49, 74, 58, 0.26);
+  background: rgba(250, 253, 246, 0.76);
+}
+
+#screen-air3d .back-btn:hover {
+  color: #5f8368;
+  border-color: #5f8368;
+}
+
+#screen-air3d .online-pill {
+  border-color: rgba(49, 74, 58, 0.18);
+  background: rgba(250, 253, 246, 0.8);
+  color: #3f5f4b;
+}
+
+#screen-air3d .online-pill em {
+  color: #6d8272;
+}
+
+#screen-air3d .air3d-layout {
+  gap: 16px;
+}
+
+#screen-air3d .air3d-card {
+  border: 1px solid rgba(49, 74, 58, 0.16);
+  background: rgba(250, 253, 246, 0.82);
+  box-shadow: 0 20px 55px rgba(33, 58, 42, 0.12);
+  color: #24352a;
+}
+
+#screen-air3d .air3d-card::before {
+  background: linear-gradient(90deg, transparent, rgba(95, 131, 104, 0.4), transparent);
+}
+
+#screen-air3d .air3d-card > h3 {
+  color: #1e2f25;
+  font-size: 1.65rem;
+}
+
+#screen-air3d .air3d-mode {
+  border-color: rgba(49, 74, 58, 0.14);
+  background: rgba(250, 253, 246, 0.58);
+}
+
+#screen-air3d .air3d-mode:hover {
+  border-color: rgba(95, 131, 104, 0.36);
+  background: #fff;
+}
+
+#screen-air3d .air3d-mode.is-active {
+  border-color: #5f8368;
+  background: linear-gradient(100deg, rgba(95, 131, 104, 0.14), rgba(250, 253, 246, 0.72));
+  box-shadow: inset 3px 0 0 #5f8368, 0 8px 24px rgba(95, 131, 104, 0.08);
+}
+
+#screen-air3d .air3d-mode-icon {
+  border-color: rgba(95, 131, 104, 0.32);
+  background: rgba(95, 131, 104, 0.07);
+}
+
+#screen-air3d .air3d-mode-icon i {
+  background: #5f8368;
+  box-shadow: 0 0 8px rgba(95, 131, 104, 0.5);
+}
+
+#screen-air3d .air3d-mode-icon.duel {
+  border-color: rgba(176, 127, 109, 0.3);
+  background: rgba(176, 127, 109, 0.07);
+}
+
+#screen-air3d .air3d-mode-icon.duel i {
+  background: #b07f6d;
+  box-shadow: 0 0 8px rgba(176, 127, 109, 0.45);
+}
+
+#screen-air3d .air3d-mode-copy b {
+  color: #1e2f25;
+  font-size: 1.1rem;
+}
+
+#screen-air3d .air3d-mode-copy small {
+  color: #5f8368;
+  font-size: 0.6rem;
+}
+
+#screen-air3d .air3d-mode-copy em {
+  color: #52695a;
+  font-size: 0.74rem;
+  line-height: 1.75;
+}
+
+#screen-air3d .air3d-mode-tag {
+  border-color: rgba(49, 74, 58, 0.18);
+  color: #617a68;
+  font-size: 0.54rem;
+}
+
+#screen-air3d .air3d-mode.is-active .air3d-mode-tag {
+  border-color: rgba(95, 131, 104, 0.32);
+  color: #5f8368;
+}
+
+#screen-air3d .air3d-loadout {
+  border-top-color: rgba(49, 74, 58, 0.14);
+}
+
+#screen-air3d .air3d-loadout b {
+  color: #1e2f25;
+  font-size: 1rem;
+}
+
+#screen-air3d .air3d-loadout small {
+  color: #6d8272;
+  font-size: 0.66rem;
+}
+
+#screen-air3d .air3d-desc {
+  color: #52695a;
+  font-size: 0.84rem;
+}
+
+#screen-air3d .code-label {
+  color: #6d8272;
+  font-size: 0.6rem;
+}
+
+#screen-air3d .room-code-input {
+  border-color: rgba(49, 74, 58, 0.22);
+  background: rgba(255, 255, 255, 0.9);
+  color: #1e2f25;
+}
+
+#screen-air3d .room-code-input::placeholder {
+  color: rgba(49, 74, 58, 0.28);
+}
+
+#screen-air3d .room-code-input:focus {
+  border-color: #5f8368;
+  box-shadow: 0 0 26px rgba(95, 131, 104, 0.14);
+}
+
+#screen-air3d .btn {
+  font-size: 0.88rem;
+}
+
+#screen-air3d .btn-primary {
+  border-color: #5f8368;
+  background: linear-gradient(110deg, #5c8066, #3e5c48);
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(95, 131, 104, 0.24);
+}
+
+#screen-air3d .btn-primary small {
+  color: rgba(250, 253, 246, 0.74);
+}
+
+#screen-air3d .btn-primary:hover {
+  background: linear-gradient(110deg, #6b9478, #486b54);
+  box-shadow: 0 14px 32px rgba(95, 131, 104, 0.3);
+}
+
+#screen-air3d .btn-primary::before {
+  background: #f6fbef;
+  box-shadow: 0 0 14px #f6fbef;
+}
+
+#screen-air3d .btn-ghost {
+  border-color: rgba(49, 74, 58, 0.24);
+  background: rgba(250, 253, 246, 0.72);
+  color: #3f5f4b;
+}
+
+#screen-air3d .btn-ghost:hover {
+  border-color: #5f8368;
+  background: #fff;
+}
+
+#screen-air3d .network-url {
+  border-color: rgba(49, 74, 58, 0.14);
+  background: rgba(250, 253, 246, 0.74);
+  color: #3f5f4b;
+}
+
+#screen-air3d .network-url button {
+  color: #5f8368;
+}
+
+#screen-air3d .air3d-info-list li {
+  border-left-color: rgba(95, 131, 104, 0.4);
+}
+
+#screen-air3d .air3d-info-list b {
+  color: #3f5f4b;
+  font-size: 0.8rem;
+}
+
+#screen-air3d .air3d-info-list span {
+  color: #52695a;
+  font-size: 0.7rem;
+}
+
+#screen-air3d .air3d-signal {
+  color: #6d8272;
+}
+
+#screen-air3d .air3d-waiting h3 {
+  color: #1e2f25;
+}
+
+#screen-air3d .air3d-waiting .eyebrow {
+  color: #5f8368;
+}
+
+#screen-air3d .air3d-waiting-mode {
+  color: #5f8368;
+  font-size: 0.64rem;
+}
+
+#screen-air3d .room-code-display small {
+  color: #6d8272;
+}
+
+#screen-air3d .room-code-display strong {
+  color: #1e2f25;
+  text-shadow: 0 0 30px rgba(95, 131, 104, 0.16);
+}
+
+#screen-air3d .copy-btn {
+  border-color: rgba(49, 74, 58, 0.26);
+  color: #3f5f4b;
+}
+
+#screen-air3d .wingman {
+  border-color: rgba(49, 74, 58, 0.22);
+  background: rgba(250, 253, 246, 0.58);
+}
+
+#screen-air3d .wingman.filled {
+  border-color: rgba(95, 131, 104, 0.42);
+  background: rgba(95, 131, 104, 0.08);
+}
+
+#screen-air3d .wingman.is-ready {
+  border-color: rgba(95, 131, 104, 0.55);
+  background: rgba(95, 131, 104, 0.12);
+}
+
+#screen-air3d .wingman b {
+  color: #1e2f25;
+  font-size: 0.88rem;
+}
+
+#screen-air3d .wingman small,
+#screen-air3d .wingman > span {
+  color: #6d8272;
+  font-size: 0.64rem;
+}
+
+#screen-air3d .waiting-orbit {
+  border-color: rgba(95, 131, 104, 0.14);
+}
+
+#screen-air3d .waiting-orbit::before {
+  border-color: rgba(95, 131, 104, 0.16);
+}
+
+/* ---------- MAP PICKER ---------- */
+
+.air3d-map-picker {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.air3d-map-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.air3d-map-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  text-align: left;
+  transition: 0.22s ease;
+}
+
+.air3d-map-option:hover {
+  border-color: rgba(95, 131, 104, 0.35);
+}
+
+.air3d-map-option.is-active {
+  border-color: rgba(95, 131, 104, 0.6);
+  background: linear-gradient(100deg, rgba(95, 131, 104, 0.12), rgba(95, 131, 104, 0.02));
+  box-shadow: inset 2px 0 0 var(--cyan);
+}
+
+.air3d-map-option b {
+  color: #eef6e8;
+  font-family: var(--display);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.air3d-map-option small {
+  color: var(--muted-2);
+  font-family: var(--display);
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+}
+
+.air3d-map-option.is-active small {
+  color: var(--cyan);
+}
+
+#screen-air3d .air3d-map-picker {
+  border-top-color: rgba(49, 74, 58, 0.14);
+}
+
+#screen-air3d .air3d-map-option {
+  border-color: rgba(49, 74, 58, 0.16);
+  background: rgba(250, 253, 246, 0.62);
+}
+
+#screen-air3d .air3d-map-option:hover {
+  border-color: rgba(95, 131, 104, 0.42);
+  background: #fff;
+}
+
+#screen-air3d .air3d-map-option.is-active {
+  border-color: #5f8368;
+  background: linear-gradient(100deg, rgba(95, 131, 104, 0.14), rgba(250, 253, 246, 0.72));
+  box-shadow: inset 2px 0 0 #5f8368;
+}
+
+#screen-air3d .air3d-map-option b {
+  color: #1e2f25;
+}
+
+#screen-air3d .air3d-map-option small {
+  color: #6d8272;
+}
+
+#screen-air3d .air3d-map-option.is-active small {
+  color: #5f8368;
+}
+
+/* ---------- ROOM READY / MAP ---------- */
+
+.air3d-waiting-map {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  margin-top: 13px;
+}
+
+.air3d-waiting-map > span {
+  color: #6d8272;
+  font-family: var(--display);
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+}
+
+.air3d-waiting-map > b {
+  color: #1e2f25;
+  font-family: var(--display);
+  font-size: 0.84rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.air3d-waiting-map > small {
+  color: #6d8272;
+  font-size: 0.6rem;
+}
+
+.air3d-room-map-options {
+  display: flex;
+  gap: 6px;
+}
+
+.air3d-room-map-options button {
+  padding: 5px 10px;
+  border: 1px solid rgba(49, 74, 58, 0.2);
+  background: rgba(250, 253, 246, 0.68);
+  color: #3f5f4b;
+  font-family: var(--display);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+}
+
+.air3d-room-map-options button:hover {
+  border-color: #5f8368;
+  color: #5f8368;
+}
+
+.air3d-ready-hint {
+  margin-top: 14px;
+  color: #52695a;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.air3d-lobby-actions #air3d-ready-btn.is-ready {
+  border-color: rgba(95, 131, 104, 0.6);
+  background: rgba(95, 131, 104, 0.14);
+  color: #436b52;
+}
+
+.air3d-lobby-actions #air3d-ready-btn.is-ready small {
+  color: #436b52;
+}
+
+.air3d-lobby-actions .btn:disabled {
+  opacity: 0.5;
+}
+
+@media (max-width: 720px) {
+  #screen-air3d .air3d-card > h3 { font-size: 1.4rem; }
+  #screen-air3d .air3d-mode-copy b { font-size: 1rem; }
+  #screen-air3d .air3d-mode-copy em { font-size: 0.68rem; }
+  #screen-air3d .air3d-desc { font-size: 0.76rem; }
+  #screen-air3d .air3d-info-list b { font-size: 0.74rem; }
+  #screen-air3d .air3d-info-list span { font-size: 0.64rem; }
+  .air3d-map-options { grid-template-columns: 1fr; }
+}
+
+.air3d-room-map-options button.is-active {
+  border-color: #5f8368;
+  background: rgba(95, 131, 104, 0.12);
+  color: #5f8368;
+}
+
+#screen-air3d .section-head {
+  border-bottom-color: rgba(49, 74, 58, 0.14);
+}
+
+#screen-air3d .section-head h3 {
+  color: #1e2f25;
+}
+
+#screen-air3d .section-head span {
+  color: #6d8272;
+}
+
+#screen-air3d .network-note {
+  color: #6d8272;
+}
+
+#screen-air3d .text-btn {
+  color: #52695a;
+}
+
+#screen-air3d .text-btn.danger {
+  color: #a46353;
+}
+
+#screen-air3d .air3d-signal i {
+  background: #6f977c;
+  box-shadow: 0 0 9px rgba(111, 151, 124, 0.7);
 }

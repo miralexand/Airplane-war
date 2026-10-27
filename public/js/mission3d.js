@@ -1,5 +1,5 @@
 import * as THREE from '../vendor/three.module.js';
-import { getPlane, getSkin } from '../../shared/catalog.js';
+import { getMap, getPlane, getSkin } from '../../shared/catalog.js';
 import { audio } from './audio.js';
 
 const TAU = Math.PI * 2;
@@ -15,6 +15,81 @@ const ENEMY_PALETTES = [
   { body: '#5b4b62', body2: '#352b3f', dark: '#130d18', accent: '#ff7758', glow: '#ff9860', trail: '#ffb266', canopy: '#1b0a12' },
   { body: '#4c5060', body2: '#292d3a', dark: '#0f1119', accent: '#ff3d55', glow: '#ff3a6b', trail: '#ff6a6a', canopy: '#16070e' }
 ];
+
+const MAP_THEMES = {
+  blacksky: {
+    clear: '#8cb9d5',
+    fog: '#add0e6',
+    fogDensity: 0.000065,
+    sky: {
+      top: '#071a35',
+      mid: '#4f8fbe',
+      bottom: '#e0c8ae',
+      sun: '#fff3d4',
+      sunDirection: [0.45, 0.38, -0.6]
+    },
+    hemisphere: ['#dff5ff', '#244158', 2.0],
+    sun: ['#ffe1b3', 3.5, 600, 900, -500],
+    fill: ['#77bfff', 1.1, -500, 200, 600],
+    sunSprite: '#ffe9c4',
+    surface: {
+      colors: ['#08243b', '#0d3d5e', '#061f35'],
+      line: '120,215,238',
+      repeat: 80,
+      tint: '#78aac2',
+      roughness: 0.62,
+      metalness: 0.18
+    },
+    island: {
+      beach: '#544f3b',
+      rock: ['#315044', '#3c4e3e'],
+      cap: '#81968b',
+      radius: [110, 340],
+      height: [320, 780],
+      distance: [1900, 6000]
+    },
+    cloud: {
+      color: '#f3fbff',
+      opacities: [0.3, 0.2, 0.13]
+    }
+  },
+  redmesa: {
+    clear: '#d9a86c',
+    fog: '#e8c49a',
+    fogDensity: 0.000058,
+    sky: {
+      top: '#3f568f',
+      mid: '#e3a06a',
+      bottom: '#f6dcbf',
+      sun: '#fff0cf',
+      sunDirection: [-0.4, 0.25, -0.5]
+    },
+    hemisphere: ['#ffe9cf', '#7a3f2a', 2.35],
+    sun: ['#ffd2a0', 3.9, -700, 840, -420],
+    fill: ['#ffb27a', 1.25, 520, 280, 700],
+    sunSprite: '#ffe2b0',
+    surface: {
+      colors: ['#8a4b2b', '#c07b45', '#6e3b24'],
+      line: '255,226,172',
+      repeat: 70,
+      tint: '#f0d6b8',
+      roughness: 0.94,
+      metalness: 0.04
+    },
+    island: {
+      beach: '#8a5a34',
+      rock: ['#a44f32', '#8a3f2c'],
+      cap: '#d9a06d',
+      radius: [160, 430],
+      height: [420, 980],
+      distance: [1700, 5600]
+    },
+    cloud: {
+      color: '#ffe8c8',
+      opacities: [0.22, 0.15, 0.09]
+    }
+  }
+};
 
 function createCanvasTexture(size, draw) {
   const canvas = document.createElement('canvas');
@@ -67,12 +142,13 @@ function makeSmokeTexture() {
   });
 }
 
-function makeOceanTexture() {
+function makeSurfaceTexture(theme = MAP_THEMES.blacksky) {
+  const surface = theme.surface;
   const texture = createCanvasTexture(512, (ctx, size) => {
     const gradient = ctx.createLinearGradient(0, 0, size, size);
-    gradient.addColorStop(0, '#08243b');
-    gradient.addColorStop(0.5, '#0d3d5e');
-    gradient.addColorStop(1, '#061f35');
+    gradient.addColorStop(0, surface.colors[0]);
+    gradient.addColorStop(0.5, surface.colors[1]);
+    gradient.addColorStop(1, surface.colors[2]);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, size, size);
     for (let i = 0; i < 160; i += 1) {
@@ -89,29 +165,29 @@ function makeOceanTexture() {
         Math.random() * size + width,
         y + rand(-5, 5)
       );
-      ctx.strokeStyle = `rgba(120, 215, 238, ${alpha})`;
+      ctx.strokeStyle = `rgba(${surface.line}, ${alpha})`;
       ctx.lineWidth = rand(0.4, 1.8);
       ctx.stroke();
     }
   });
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(80, 80);
+  texture.repeat.set(surface.repeat, surface.repeat);
   texture.anisotropy = 4;
   return texture;
 }
 
-function makeSky() {
+function makeSky(theme = MAP_THEMES.blacksky) {
   const geometry = new THREE.SphereGeometry(9200, 32, 20);
   const material = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
     uniforms: {
-      topColor: { value: new THREE.Color('#071a35') },
-      midColor: { value: new THREE.Color('#4f8fbe') },
-      bottomColor: { value: new THREE.Color('#e0c8ae') },
-      sunColor: { value: new THREE.Color('#fff3d4') },
-      sunDirection: { value: new THREE.Vector3(0.45, 0.38, -0.6).normalize() }
+      topColor: { value: new THREE.Color(theme.sky.top) },
+      midColor: { value: new THREE.Color(theme.sky.mid) },
+      bottomColor: { value: new THREE.Color(theme.sky.bottom) },
+      sunColor: { value: new THREE.Color(theme.sky.sun) },
+      sunDirection: { value: new THREE.Vector3(...theme.sky.sunDirection).normalize() }
     },
     vertexShader: `
       varying vec3 vWorldPosition;
@@ -386,14 +462,29 @@ export class Mission3D {
     this.callbacks = options.callbacks || {};
     this.planeId = getPlane(options.plane).id;
     this.skinId = getSkin(options.skin).id;
+    this.mapId = getMap(options.map).id;
+    this.mapInfo = getMap(options.map);
+    this.mapTheme = MAP_THEMES[this.mapId] || MAP_THEMES.blacksky;
     this.plane = getPlane(this.planeId);
     this.skin = getSkin(this.skinId);
     const loadout = this.plane.loadout || {};
     this.maxHp = loadout.hp || 120;
     this.cannonDamage = loadout.cannonDamage ?? loadout.damage ?? 6;
-    this.cannonAmmoMax = loadout.ammo || 360;
+    this.cannonAmmoMax = loadout.ammo || 220;
     this.cannonAmmo = this.cannonAmmoMax;
     this.cannonDelay = Math.max(0.075, loadout.fireDelay || 0.135);
+    this.ultimate = this.plane.ultimate || {
+      id: 'storm',
+      name: '苍穹风暴',
+      short: '风暴',
+      cooldown: 48,
+      desc: '同时锁定多个目标，齐射高伤追踪导弹。'
+    };
+    this.ultimateCooldownMax = Math.max(20, Number(this.ultimate.cooldown) || 48);
+    this.ultimateCooldown = 0;
+    this.ultimateActive = 0;
+    this.ultimateShield = 0;
+    this.singularity = null;
     const stats = this.plane.stats || {};
     this.agilityScale = 0.62 + (stats.handling || 3) * 0.11;
     this.flightSpeed = 136 * (0.78 + (stats.speed || 3) * 0.06);
@@ -510,27 +601,28 @@ export class Mission3D {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
-    this.renderer.setClearColor('#8cb9d5', 1);
+    this.renderer.toneMappingExposure = this.mapId === 'redmesa' ? 1.18 : 1.12;
+    this.renderer.setClearColor(this.mapTheme.clear, 1);
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.4, 12000);
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2('#add0e6', 0.000065);
+    this.scene.fog = new THREE.FogExp2(this.mapTheme.fog, this.mapTheme.fogDensity);
   }
 
   initScene() {
-    this.scene.add(makeSky());
-    const hemisphere = new THREE.HemisphereLight('#dff5ff', '#244158', 2.0);
+    const theme = this.mapTheme;
+    this.scene.add(makeSky(theme));
+    const hemisphere = new THREE.HemisphereLight(theme.hemisphere[0], theme.hemisphere[1], theme.hemisphere[2]);
     this.scene.add(hemisphere);
-    const sun = new THREE.DirectionalLight('#ffe1b3', 3.5);
-    sun.position.set(600, 900, -500);
+    const sun = new THREE.DirectionalLight(theme.sun[0], theme.sun[1]);
+    sun.position.set(theme.sun[2], theme.sun[3], theme.sun[4]);
     this.scene.add(sun);
-    const fill = new THREE.DirectionalLight('#77bfff', 1.1);
-    fill.position.set(-500, 200, 600);
+    const fill = new THREE.DirectionalLight(theme.fill[0], theme.fill[1]);
+    fill.position.set(theme.fill[2], theme.fill[3], theme.fill[4]);
     this.scene.add(fill);
 
     const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: makeGlowTexture('rgba(255,255,255,0.95)', 'rgba(255,194,121,0)'),
-      color: '#ffe9c4',
+      color: theme.sunSprite,
       transparent: true,
       opacity: 0.9,
       blending: THREE.AdditiveBlending,
@@ -541,14 +633,14 @@ export class Mission3D {
     sunSprite.scale.set(650, 650, 1);
     this.scene.add(sunSprite);
 
-    this.oceanTexture = makeOceanTexture();
+    this.oceanTexture = makeSurfaceTexture(theme);
     this.ocean = new THREE.Mesh(
       new THREE.PlaneGeometry(22000, 22000),
       new THREE.MeshStandardMaterial({
         map: this.oceanTexture,
-        color: '#78aac2',
-        roughness: 0.62,
-        metalness: 0.18
+        color: theme.surface.tint,
+        roughness: theme.surface.roughness,
+        metalness: theme.surface.metalness
       })
     );
     this.ocean.rotation.x = -Math.PI / 2;
@@ -558,29 +650,37 @@ export class Mission3D {
     this.islands = [];
     for (let i = 0; i < 14; i += 1) {
       const angle = rand(0, TAU);
-      const distance = rand(1800, 5800);
-      const radius = rand(100, 330);
-      const height = rand(80, 340);
+      const distance = rand(theme.island.distance[0], theme.island.distance[1]);
+      const radius = rand(theme.island.radius[0], theme.island.radius[1]);
+      const height = rand(theme.island.height[0], theme.island.height[1]);
       const island = new THREE.Group();
       const beach = new THREE.Mesh(
         new THREE.CylinderGeometry(radius * 1.35, radius * 1.55, 8, 7),
-        new THREE.MeshStandardMaterial({ color: '#544f3b', roughness: 0.92 })
+        new THREE.MeshStandardMaterial({ color: theme.island.beach, roughness: 0.92 })
       );
       beach.position.y = 0;
       island.add(beach);
       const mountain = new THREE.Mesh(
         new THREE.ConeGeometry(radius, height, 6),
         new THREE.MeshStandardMaterial({
-          color: i % 3 === 0 ? '#315044' : '#3c4e3e',
+          color: theme.island.rock[i % theme.island.rock.length],
           roughness: 0.94,
           flatShading: true
         })
       );
       mountain.position.y = height / 2 + 4;
       island.add(mountain);
+      if (this.mapId === 'redmesa' && i % 3 === 0) {
+        const spire = new THREE.Mesh(
+          new THREE.ConeGeometry(radius * 0.32, height * 0.55, 5),
+          new THREE.MeshStandardMaterial({ color: theme.island.rock[(i + 1) % theme.island.rock.length], roughness: 0.96, flatShading: true })
+        );
+        spire.position.set(radius * 0.55, height * 0.52, -radius * 0.2);
+        island.add(spire);
+      }
       const cap = new THREE.Mesh(
         new THREE.ConeGeometry(radius * 0.25, height * 0.28, 6),
-        new THREE.MeshStandardMaterial({ color: '#81968b', roughness: 0.8, flatShading: true })
+        new THREE.MeshStandardMaterial({ color: theme.island.cap, roughness: 0.8, flatShading: true })
       );
       cap.position.y = height * 0.88;
       island.add(cap);
@@ -591,9 +691,9 @@ export class Mission3D {
     }
 
     this.cloudTexture = makeCloudTexture();
-    this.cloudMaterials = [0.3, 0.2, 0.13].map((opacity) => new THREE.SpriteMaterial({
+    this.cloudMaterials = theme.cloud.opacities.map((opacity) => new THREE.SpriteMaterial({
       map: this.cloudTexture,
-      color: '#f3fbff',
+      color: theme.cloud.color,
       transparent: true,
       opacity,
       depthWrite: false,
@@ -651,6 +751,19 @@ export class Mission3D {
     this.playerFlames = model.flames;
     this.playerOuterFlames = model.flameOuters;
     this.playerGroup.add(this.playerModel);
+    this.shieldMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(10.5, 20, 14),
+      new THREE.MeshBasicMaterial({
+        color: '#8fe8ff',
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    this.shieldMesh.visible = false;
+    this.playerGroup.add(this.shieldMesh);
     this.scene.add(this.playerGroup);
 
     this.player = {
@@ -1060,7 +1173,7 @@ export class Mission3D {
 
   onKeyDown(event) {
     if (this.state !== 'playing' || this.paused) return;
-    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyF', 'KeyC'].includes(event.code)) {
+    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyF', 'KeyC', 'KeyR'].includes(event.code)) {
       event.preventDefault();
     }
     this.keys.add(event.code);
@@ -1071,6 +1184,7 @@ export class Mission3D {
     if (event.repeat) return;
     if (event.code === 'KeyF') this.launchPlayerMissile();
     if (event.code === 'KeyC') this.deployFlares();
+    if (event.code === 'KeyR') this.triggerUltimate();
   }
 
   onKeyUp(event) {
@@ -1089,6 +1203,11 @@ export class Mission3D {
     this.flaresLeft = 5;
     this.boost = 100;
     this.cannonAmmo = this.cannonAmmoMax;
+    this.ultimateCooldown = 0;
+    this.ultimateActive = 0;
+    this.ultimateShield = 0;
+    this.removeSingularity();
+    if (this.shieldMesh) this.shieldMesh.visible = false;
     this.player.hp = this.maxHp;
     this.player.maxHp = this.maxHp;
     this.player.alive = true;
@@ -1203,6 +1322,7 @@ export class Mission3D {
     if (!pressed) return;
     if (action === 'missile') this.launchPlayerMissile();
     if (action === 'flare') this.deployFlares();
+    if (action === 'ultimate') this.triggerUltimate();
   }
 
   refreshAudio() {
@@ -1236,6 +1356,7 @@ export class Mission3D {
       effect.sprite.material.dispose?.();
     }
     this.effects = [];
+    this.removeSingularity();
     for (const tracer of this.tracers) {
       this.scene.remove(tracer.line);
       tracer.line.geometry.dispose();
@@ -1375,7 +1496,7 @@ export class Mission3D {
       this.boost = Math.min(100, this.boost + dt * 14);
       this.boostActive = false;
     }
-    const targetSpeed = this.flightSpeed + (this.boostActive ? this.boostSpeed : 0);
+    const targetSpeed = this.flightSpeed + (this.boostActive ? this.boostSpeed : 0) + (this.ultimateActive > 0 ? 240 : 0);
     player.speed = damp(player.speed, targetSpeed, this.boostActive ? 2.8 : 1.8, dt);
     const targetVelocity = forward.multiplyScalar(player.speed);
     player.velocity.lerp(targetVelocity, 1 - Math.exp(-2.8 * dt));
@@ -1413,11 +1534,34 @@ export class Mission3D {
     const maneuver = Math.abs(this.yawRate) + Math.abs(this.pitchRate);
     this.gForce = damp(this.gForce, 1 + maneuver * 2.7, 5, dt);
     player.invuln = Math.max(0, player.invuln - dt);
+    if (this.ultimateActive > 0) {
+      this.ultimateActive = Math.max(0, this.ultimateActive - dt);
+      player.invuln = Math.max(player.invuln, 0.2);
+    }
+    if (this.ultimateShield > 0) {
+      this.ultimateShield = Math.max(0, this.ultimateShield - dt);
+      if (this.shieldMesh) {
+        this.shieldMesh.visible = true;
+        this.shieldMesh.material.opacity = 0.16 + Math.sin(this.elapsed * 8) * 0.05 + this.ultimateShield * 0.018;
+        this.shieldMesh.rotation.y += dt * 0.9;
+        this.shieldMesh.rotation.x += dt * 0.35;
+      }
+    } else if (this.shieldMesh && this.shieldMesh.visible) {
+      this.shieldMesh.visible = false;
+    }
     this.cameraShake = Math.max(0, this.cameraShake - dt * 3.8);
 
     if (this.cannonTimer > 0) this.cannonTimer -= dt;
     if (this.missileCooldown > 0) this.missileCooldown -= dt;
     if (this.flareCooldown > 0) this.flareCooldown -= dt;
+    if (this.ultimateCooldown > 0) {
+      const previousCooldown = this.ultimateCooldown;
+      this.ultimateCooldown = Math.max(0, this.ultimateCooldown - dt);
+      if (previousCooldown > 0 && this.ultimateCooldown === 0) {
+        this.message('ULTIMATE READY', `${this.ultimate.name} 已就绪`, 'success');
+        audio.lockedBeep();
+      }
+    }
 
     const firing = this.mobileCannon || this.keys.has('Space');
     if (firing) {
@@ -1771,7 +1915,8 @@ export class Mission3D {
       seekerDelay: 0.25,
       age: 0,
       life: 10,
-      trailTimer: 0
+      trailTimer: 0,
+      damage: 58
     });
     this.missilesLeft -= 1;
     this.missileCooldown = 0.35;
@@ -1848,6 +1993,225 @@ export class Mission3D {
     });
   }
 
+  triggerUltimate() {
+    if (this.state !== 'playing' || this.paused || !this.player.alive) return;
+    if (this.ultimateCooldown > 0) {
+      audio.error();
+      this.message('ULTIMATE CHARGING', `${this.ultimate.name} 还有 ${Math.ceil(this.ultimateCooldown)} 秒`, 'info');
+      return;
+    }
+    this.ultimateCooldown = this.ultimateCooldownMax;
+    this.castUltimate();
+    this.emitHud(true);
+  }
+
+  castUltimate() {
+    const ultimate = this.ultimate;
+    const forward = this.getPlayerForward();
+    this.cameraShake = Math.max(this.cameraShake, 7);
+    this.spawnMuzzleFlash(this.player.position.clone().addScaledVector(forward, 3));
+    audio.missileLaunch();
+    if (ultimate.id === 'storm') {
+      const targets = this.enemies
+        .filter((enemy) => enemy.alive && enemy.position.distanceTo(this.player.position) < 5400)
+        .slice(0, 4);
+      if (!targets.length) {
+        this.message('ULTIMATE', '空域内没有可锁定目标', 'info');
+        return;
+      }
+      targets.forEach((target, index) => this.spawnUltimateMissile(target, index));
+      this.message('ULTIMATE', `${ultimate.name} · ${targets.length} 枚导弹齐射`, 'success');
+      return;
+    }
+    if (ultimate.id === 'afterburner') {
+      this.ultimateActive = 6;
+      this.player.invuln = Math.max(this.player.invuln, 6);
+      this.boost = 100;
+      this.message('ULTIMATE', `${ultimate.name} · 超频突进 6 秒`, 'success');
+      return;
+    }
+    if (ultimate.id === 'thunder') {
+      const radius = 1600;
+      let hits = 0;
+      for (const enemy of [...this.enemies]) {
+        if (!enemy.alive) continue;
+        if (enemy.position.distanceTo(this.player.position) > radius) continue;
+        this.addTracer(this.player.position.clone(), enemy.position.clone(), '#9be8ff', 0.38, 9);
+        this.spawnSparks(enemy.position.clone(), '#8fe8ff', 9);
+        this.damageEnemy(enemy, enemy.isPvpTarget ? 52 : 90);
+        hits += 1;
+      }
+      this.spawnExplosion(this.player.position.clone(), 2.5);
+      this.spawnShockwave(this.player.position.clone(), '#8fe8ff', 240);
+      this.message('ULTIMATE', `${ultimate.name} · 命中 ${hits} 个目标`, hits ? 'success' : 'info');
+      return;
+    }
+    if (ultimate.id === 'singularity') {
+      this.deploySingularity();
+      this.message('ULTIMATE', `${ultimate.name} · 引力场已投放`, 'success');
+      return;
+    }
+    if (ultimate.id === 'fortress') {
+      this.ultimateShield = 8;
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + 90);
+      if (this.shieldMesh) this.shieldMesh.visible = true;
+      this.spawnShockwave(this.player.position.clone(), '#8fe8ff', 120);
+      this.message('ULTIMATE', `${ultimate.name} · 能量壁垒展开`, 'success');
+      return;
+    }
+    this.message('ULTIMATE', `${ultimate.name} 已启动`, 'success');
+  }
+
+  spawnUltimateMissile(target, index) {
+    const side = index % 2 === 0 ? -1 : 1;
+    const position = this.player.position.clone()
+      .add(new THREE.Vector3(3.2 * side, 1.1 - index * 0.35, 2.2 + index * 0.4).applyQuaternion(this.player.quaternion));
+    const group = buildMissile('player');
+    group.position.copy(position);
+    const direction = target.position.clone().sub(position).normalize();
+    group.quaternion.copy(quaternionFromForward(direction));
+    this.scene.add(group);
+    this.playerMissiles.push({
+      group,
+      position: group.position,
+      velocity: direction.multiplyScalar(305),
+      target,
+      seekerDelay: 0,
+      age: 0,
+      life: 10,
+      trailTimer: 0,
+      damage: 78,
+      ultimate: true
+    });
+  }
+
+  deploySingularity() {
+    this.removeSingularity();
+    const focus = this.lockTarget?.alive
+      ? this.lockTarget.position.clone()
+      : this.player.position.clone().add(this.getPlayerForward().multiplyScalar(900));
+    focus.y = clamp(focus.y, 120, 1300);
+    const group = new THREE.Group();
+    group.position.copy(focus);
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(18, 18, 12),
+      new THREE.MeshBasicMaterial({
+        color: '#b68cff',
+        transparent: true,
+        opacity: 0.82,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    group.add(core);
+    const rings = [];
+    for (let i = 0; i < 3; i += 1) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(34 + i * 18, 1.4, 6, 48),
+        new THREE.MeshBasicMaterial({
+          color: i === 1 ? '#7fe8ff' : '#c9a4ff',
+          transparent: true,
+          opacity: 0.65,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        })
+      );
+      ring.rotation.x = rand(0, Math.PI);
+      ring.rotation.y = rand(0, Math.PI);
+      group.add(ring);
+      rings.push(ring);
+    }
+    const light = new THREE.PointLight('#b58cff', 9, 900, 2);
+    group.add(light);
+    this.scene.add(group);
+    this.singularity = {
+      group,
+      position: group.position,
+      core,
+      rings,
+      light,
+      life: 6,
+      maxLife: 6,
+      tick: 0
+    };
+  }
+
+  updateSingularity(dt) {
+    const singularity = this.singularity;
+    if (!singularity) return;
+    singularity.life -= dt;
+    singularity.core.scale.setScalar(1 + Math.sin(this.elapsed * 7) * 0.14);
+    singularity.group.rotation.y += dt * 2.2;
+    for (let i = 0; i < singularity.rings.length; i += 1) {
+      singularity.rings[i].rotation.z += dt * (0.8 + i * 0.45);
+    }
+    singularity.tick -= dt;
+    if (singularity.tick <= 0) {
+      singularity.tick = 0.5;
+      for (const enemy of [...this.enemies]) {
+        if (!enemy.alive) continue;
+        const distance = enemy.position.distanceTo(singularity.position);
+        if (distance > 1200) continue;
+        if (!enemy.isNetworkPlayer && !enemy.isSnapshotEnemy) {
+          enemy.position.lerp(singularity.position, 0.045);
+          enemy.group.position.copy(enemy.position);
+        }
+        this.spawnSparks(enemy.position.clone(), '#c9a4ff', 4);
+        this.damageEnemy(enemy, 18);
+      }
+    }
+    if (singularity.life <= 0) this.removeSingularity();
+  }
+
+  removeSingularity() {
+    if (!this.singularity) return;
+    this.scene.remove(this.singularity.group);
+    this.disposeGroup(this.singularity.group);
+    this.singularity = null;
+  }
+
+  damageEnemy(enemy, damage) {
+    if (!enemy || !enemy.alive || damage <= 0) return;
+    if (enemy.isPvpTarget) {
+      this.applyLocalPvpHit(enemy, damage);
+      return;
+    }
+    enemy.damageFlash = 1;
+    if (this.isNetworkGuest && this.isCoopMode) {
+      enemy.hp = Math.max(0, enemy.hp - damage);
+      this.callbacks.onNetworkEnemyHit?.({ id: enemy.networkId, damage });
+      return;
+    }
+    enemy.hp = Math.max(0, enemy.hp - damage);
+    if (enemy.hp <= 0) this.killEnemy(enemy);
+  }
+
+  spawnShockwave(position, color, maxRadius = 200) {
+    const material = new THREE.SpriteMaterial({
+      map: this.effectTextures.glow,
+      color,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.copy(position);
+    sprite.scale.set(18, 18, 1);
+    this.scene.add(sprite);
+    this.effects.push({
+      sprite,
+      velocity: new THREE.Vector3(),
+      life: 0.55,
+      maxLife: 0.55,
+      size: maxRadius * 0.5,
+      opacity: 0.7,
+      grow: 2.6,
+      drag: 0,
+      gravity: 0
+    });
+  }
+
   updatePlayerMissiles(dt) {
     for (let i = this.playerMissiles.length - 1; i >= 0; i -= 1) {
       const missile = this.playerMissiles[i];
@@ -1876,14 +2240,7 @@ export class Mission3D {
         const distance = missile.position.distanceTo(missile.target.position);
         if (distance < 24) {
           this.missileHits += 1;
-          if (missile.target.isPvpTarget) {
-            this.applyLocalPvpHit(missile.target, 58);
-          } else if (this.isNetworkGuest && this.isCoopMode) {
-            missile.target.hp = 0;
-            this.callbacks.onNetworkEnemyHit?.({ id: missile.target.networkId, damage: 999 });
-          } else {
-            this.killEnemy(missile.target);
-          }
+          this.damageEnemy(missile.target, Number(missile.damage) || 58);
           this.spawnExplosion(missile.position, 1.4);
           this.removePlayerMissile(i);
           continue;
@@ -2043,7 +2400,12 @@ export class Mission3D {
 
   damagePlayer(amount, source) {
     if (!this.player.alive || this.player.invuln > 0) return;
-    this.player.hp = Math.max(0, this.player.hp - amount);
+    let incoming = amount;
+    if (this.ultimateShield > 0) {
+      incoming *= 0.18;
+      this.spawnSparks(this.player.position.clone(), '#8fe8ff', 6);
+    }
+    this.player.hp = Math.max(0, this.player.hp - incoming);
     this.player.invuln = 0.35;
     this.damageFlash = 1;
     this.cameraShake = Math.max(this.cameraShake, 8);
@@ -2342,6 +2704,8 @@ export class Mission3D {
       accuracy,
       plane: this.planeId,
       skin: this.skinId,
+      map: this.mapId,
+      ultimate: this.ultimate.id,
       pvp: this.isPvp,
       pvpHostHp: Math.max(0, Math.round(this.player.hp)),
       pvpGuestHp: this.aliveRemoteCount(),
@@ -2474,6 +2838,16 @@ export class Mission3D {
     this._hud.flares = this.flaresLeft;
     this._hud.cannonAmmo = this.cannonAmmo;
     this._hud.cannonAmmoMax = this.cannonAmmoMax;
+    this._hud.ultimate = {
+      id: this.ultimate.id,
+      name: this.ultimate.name,
+      short: this.ultimate.short || this.ultimate.name,
+      ready: this.ultimateCooldown <= 0 && this.player.alive,
+      cooldown: this.ultimateCooldown,
+      max: this.ultimateCooldownMax,
+      active: this.ultimateActive > 0 || this.ultimateShield > 0 || Boolean(this.singularity)
+    };
+    this._hud.map = this.mapId;
     this._hud.score = this.score;
     this._hud.cloud = this.cloudImmersion;
     this._hud.networkMode = this.networkMode;
@@ -2543,6 +2917,7 @@ export class Mission3D {
       this.updatePlayerMissiles(dt);
       this.updateEnemyMissiles(dt);
       this.updateFlares(dt);
+      this.updateSingularity(dt);
       this.updateLock(dt);
       this.updateWarning(dt);
       this.updateEffects(dt);
