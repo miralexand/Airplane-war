@@ -280,6 +280,9 @@ function cacheDom() {
   dom.missileWarning = $('#missile-warning');
   dom.missileWarningArrow = $('#missile-warning-arrow');
   dom.missileWarningSub = $('#missile-warning-sub');
+  dom.missionStall = $('#mission-stall');
+  dom.missionStallTitle = $('#mission-stall-title');
+  dom.missionStallSub = $('#mission-stall-sub');
   dom.missionDamageVignette = $('#mission-damage-vignette');
   dom.missionHitFlash = $('#mission-hit-flash');
   dom.missionCloudOverlay = $('#mission-cloud-overlay');
@@ -609,7 +612,7 @@ function showScreen(name) {
   dom.app.classList.toggle('in-game', name === 'game' || name === 'mission3d');
   dom.app.classList.toggle('air3d-light', name === 'air3d');
   dom.app.classList.toggle('home-sage', name === 'home');
-  menuScene?.setTheme(name === 'home' ? 'sage' : 'default');
+  menuScene?.setTheme('sage');
 
   if (name === 'game' || name === 'mission3d') {
     menuScene?.stop();
@@ -944,6 +947,7 @@ function prepareAir3DMatch(payload) {
         onNetworkSnapshot: (snapshot) => state.socket?.emit('air3d:snapshot', snapshot),
         onNetworkEnemyHit: (hit) => state.socket?.emit('air3d:enemyHit', hit),
         onNetworkPvpHit: (hit) => state.socket?.emit('air3d:pvpHit', hit),
+        onNetworkCrash: () => state.socket?.emit('air3d:crash'),
         onNetworkFx: (fx) => state.socket?.emit('air3d:fx', fx)
       }
     });
@@ -2589,6 +2593,19 @@ function updateMissionHud(snapshot) {
     dom.missileWarning.classList.remove('is-intense', 'is-locking');
   }
 
+  const stall = snapshot.stall;
+  if (stall?.active || stall?.warning) {
+    dom.missionStall.hidden = false;
+    dom.missionStall.classList.toggle('is-active', Boolean(stall.active));
+    dom.missionStallTitle.textContent = stall.active ? 'STALL' : 'STALL WARNING';
+    dom.missionStallSub.textContent = stall.active
+      ? '失速 · 推杆下降恢复速度'
+      : '空气稀薄 · 降低高度';
+  } else {
+    dom.missionStall.hidden = true;
+    dom.missionStall.classList.remove('is-active');
+  }
+
   const cloudCover = clamp(Number(snapshot.cloud) || 0, 0, 1);
   dom.missionCloudOverlay.style.opacity = String(cloudCover * 0.56);
   dom.missionCoverBadge.hidden = cloudCover < 0.28;
@@ -2649,9 +2666,9 @@ function drawMissionRadar(contacts = [], timestamp = performance.now()) {
   ctx.clearRect(0, 0, size, size);
 
   const bg = ctx.createRadialGradient(center, center, 5, center, center, center);
-  bg.addColorStop(0, 'rgba(15, 46, 57, 0.62)');
-  bg.addColorStop(0.62, 'rgba(8, 28, 38, 0.36)');
-  bg.addColorStop(1, 'rgba(2, 10, 15, 0.12)');
+  bg.addColorStop(0, 'rgba(24, 38, 30, 0.62)');
+  bg.addColorStop(0.62, 'rgba(14, 24, 18, 0.36)');
+  bg.addColorStop(1, 'rgba(5, 10, 7, 0.12)');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, size, size);
 
@@ -2659,8 +2676,8 @@ function drawMissionRadar(contacts = [], timestamp = performance.now()) {
   const sweepX = Math.sin(sweep);
   const sweepY = -Math.cos(sweep);
   const glow = ctx.createRadialGradient(center, center, 2, center, center, 84);
-  glow.addColorStop(0, 'rgba(87, 229, 255, 0.06)');
-  glow.addColorStop(1, 'rgba(87, 229, 255, 0)');
+  glow.addColorStop(0, 'rgba(198, 220, 192, 0.06)');
+  glow.addColorStop(1, 'rgba(198, 220, 192, 0)');
   ctx.fillStyle = glow;
   ctx.beginPath();
   ctx.arc(center, center, 84, 0, TAU);
@@ -2672,19 +2689,19 @@ function drawMissionRadar(contacts = [], timestamp = performance.now()) {
   ctx.arc(center, center, 82, -Math.PI / 2 + sweep - 0.54, -Math.PI / 2 + sweep);
   ctx.closePath();
   const wedge = ctx.createLinearGradient(center, center, center + sweepX * 82, center + sweepY * 82);
-  wedge.addColorStop(0, 'rgba(87, 229, 255, 0.015)');
-  wedge.addColorStop(1, 'rgba(87, 229, 255, 0.13)');
+  wedge.addColorStop(0, 'rgba(198, 220, 192, 0.015)');
+  wedge.addColorStop(1, 'rgba(198, 220, 192, 0.13)');
   ctx.fillStyle = wedge;
   ctx.fill();
   ctx.beginPath();
   ctx.moveTo(center, center);
   ctx.lineTo(center + sweepX * 82, center + sweepY * 82);
-  ctx.strokeStyle = 'rgba(128, 241, 255, 0.55)';
+  ctx.strokeStyle = 'rgba(198, 220, 192, 0.55)';
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
 
-  ctx.strokeStyle = 'rgba(87, 229, 255, 0.13)';
+  ctx.strokeStyle = 'rgba(198, 220, 192, 0.13)';
   ctx.lineWidth = 1;
   for (const radius of [26, 52, 78]) {
     ctx.beginPath();
@@ -2696,7 +2713,7 @@ function drawMissionRadar(contacts = [], timestamp = performance.now()) {
   ctx.lineTo(center, size - 8);
   ctx.moveTo(8, center);
   ctx.lineTo(size - 8, center);
-  ctx.strokeStyle = 'rgba(87, 229, 255, 0.065)';
+  ctx.strokeStyle = 'rgba(198, 220, 192, 0.065)';
   ctx.stroke();
 
   for (let i = 0; i < 12; i += 1) {
@@ -2705,11 +2722,11 @@ function drawMissionRadar(contacts = [], timestamp = performance.now()) {
     ctx.beginPath();
     ctx.moveTo(center + Math.sin(angle) * inner, center - Math.cos(angle) * inner);
     ctx.lineTo(center + Math.sin(angle) * 84, center - Math.cos(angle) * 84);
-    ctx.strokeStyle = i % 3 === 0 ? 'rgba(128, 226, 247, 0.3)' : 'rgba(87, 229, 255, 0.12)';
+    ctx.strokeStyle = i % 3 === 0 ? 'rgba(198, 220, 192, 0.3)' : 'rgba(198, 220, 192, 0.12)';
     ctx.stroke();
   }
 
-  ctx.fillStyle = 'rgba(150, 226, 244, 0.48)';
+  ctx.fillStyle = 'rgba(190, 211, 184, 0.48)';
   ctx.font = '5px "Bahnschrift", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('1.2', center, center - 42);
@@ -2722,7 +2739,7 @@ function drawMissionRadar(contacts = [], timestamp = performance.now()) {
     let delta = (sweep - contactAngle + TAU) % TAU;
     const trail = delta < 1.75 ? 1 - delta / 1.75 : 0;
     const isAlly = contact.type === 'ally';
-    const color = contact.target ? '#ffcf5b' : isAlly ? '#6bffb8' : '#ff5f79';
+    const color = contact.target ? '#d9c99a' : isAlly ? '#b8d7a8' : '#ff5f79';
     const alpha = 0.25 + trail * 0.75;
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -2765,8 +2782,8 @@ function drawMissionRadar(contacts = [], timestamp = performance.now()) {
   ctx.lineTo(0, 3);
   ctx.lineTo(-4.6, 6);
   ctx.closePath();
-  ctx.fillStyle = '#e8fcff';
-  ctx.shadowColor = '#57e5ff';
+  ctx.fillStyle = '#f0f6ea';
+  ctx.shadowColor = '#c6dcc0';
   ctx.shadowBlur = 6;
   ctx.fill();
   ctx.restore();
@@ -2837,12 +2854,24 @@ function handleMissionEnd(result) {
   dom.missionEnd.classList.toggle('is-failure', !result.success);
   dom.missionEndEyebrow.textContent = result.success ? 'MISSION COMPLETE' : 'MISSION FAILED';
   dom.missionEndMark.innerHTML = `<span>${result.success ? '✓' : '×'}</span>`;
-  dom.missionEndTitle.textContent = result.success ? '任务完成' : result.reason === 'timeout' ? '任务超时' : '战机被击落';
+  dom.missionEndTitle.textContent = result.success
+    ? '任务完成'
+    : result.reason === 'timeout'
+      ? '任务超时'
+      : result.reason === 'mountain'
+        ? '撞山坠机'
+        : result.reason === 'ground'
+          ? '撞地坠机'
+          : '战机被击落';
   dom.missionEndSubtitle.textContent = result.success
     ? '敌方编队全部击落。空域恢复安全，王牌档案已记录你的呼号。'
     : result.reason === 'timeout'
       ? '时限耗尽，敌方编队仍在空域内活动。重新规划攻击路线。'
-      : '战机结构失效。下一次，别让导弹咬住你的尾焰。';
+      : result.reason === 'mountain'
+        ? '战机撞上山体。留意地形警告，提前拉升高度。'
+        : result.reason === 'ground'
+          ? '战机触地坠毁。保持高度，别让机腹擦过地表。'
+          : '战机结构失效。下一次，别让导弹咬住你的尾焰。';
   dom.missionEndGrid.innerHTML = `
     <div class="mission-end-stat"><span>SCORE</span><b>${formatNumber(result.score)}</b></div>
     <div class="mission-end-stat"><span>击落</span><b>${result.kills} / ${result.required}</b></div>

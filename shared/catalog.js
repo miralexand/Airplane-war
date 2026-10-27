@@ -166,13 +166,13 @@ export const SKINS = [
     unlock: 'free',
     price: 0,
     palette: {
-      body: '#dcecff',
-      body2: '#8199b5',
-      dark: '#25364c',
-      accent: '#5ee7ff',
-      glow: '#55dfff',
-      trail: '#7cecff',
-      canopy: '#12324f'
+      body: '#e2e9dc',
+      body2: '#93a394',
+      dark: '#28352b',
+      accent: '#c6dcc0',
+      glow: '#b8d7a8',
+      trail: '#cfe3c6',
+      canopy: '#1e3227'
     }
   },
   {

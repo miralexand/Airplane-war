@@ -10,7 +10,7 @@
   width: 100%;
   height: 100dvh;
   overflow: hidden;
-  background: #02050b;
+  background: #141d17;
   color: var(--text);
 }
 
@@ -155,7 +155,7 @@
   content: "";
   position: absolute;
   inset: 16px;
-  border: 1px solid rgba(87, 229, 255, 0.055);
+  border: 1px solid rgba(198, 220, 192, 0.055);
   clip-path: polygon(0 0, 9% 0, 9% 1px, 91% 1px, 91% 0, 100% 0, 100% 100%, 0 100%);
   pointer-events: none;
 }
@@ -167,7 +167,7 @@
   right: 18px;
   top: 18px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(87, 229, 255, 0.25) 18%, transparent 45%, transparent 55%, rgba(87, 229, 255, 0.25) 82%, transparent);
+  background: linear-gradient(90deg, transparent, rgba(198, 220, 192, 0.25) 18%, transparent 45%, transparent 55%, rgba(198, 220, 192, 0.25) 82%, transparent);
   pointer-events: none;
 }
 
@@ -193,15 +193,15 @@
   pointer-events: auto;
   width: 39px;
   height: 39px;
-  border-color: rgba(87, 229, 255, 0.25);
-  background: rgba(3, 12, 21, 0.48);
+  border-color: rgba(198, 220, 192, 0.25);
+  background: rgba(16, 25, 19, 0.48);
   color: rgba(218, 248, 255, 0.75);
   backdrop-filter: blur(10px);
 }
 
 .mission-pause:hover {
   color: var(--cyan);
-  border-color: rgba(87, 229, 255, 0.55);
+  border-color: rgba(198, 220, 192, 0.55);
 }
 
 .mission-id > div {
@@ -345,8 +345,8 @@
   display: block;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #209dc2, var(--cyan));
-  box-shadow: 0 0 9px rgba(87, 229, 255, 0.5);
+  background: linear-gradient(90deg, #8fae94, var(--cyan));
+  box-shadow: 0 0 9px rgba(198, 220, 192, 0.5);
   transform-origin: left;
   transition: transform 0.18s linear;
 }
@@ -365,7 +365,7 @@
 }
 
 .g-limit b {
-  color: rgba(255, 207, 91, 0.8);
+  color: rgba(217, 201, 154, 0.8);
   font-size: 0.72rem;
   font-weight: 400;
 }
@@ -446,17 +446,17 @@
   width: 150px;
   height: 150px;
   overflow: hidden;
-  border: 1px solid rgba(87, 229, 255, 0.17);
+  border: 1px solid rgba(198, 220, 192, 0.17);
   border-radius: 50%;
   background: rgba(2, 11, 17, 0.48);
-  box-shadow: inset 0 0 28px rgba(87, 229, 255, 0.035);
+  box-shadow: inset 0 0 28px rgba(198, 220, 192, 0.035);
 }
 
 .radar-frame::before,
 .radar-frame::after {
   content: "";
   position: absolute;
-  background: rgba(87, 229, 255, 0.11);
+  background: rgba(198, 220, 192, 0.11);
 }
 
 .radar-frame::before {
@@ -487,7 +487,7 @@
   width: 50%;
   height: 50%;
   transform-origin: 0 0;
-  background: conic-gradient(from 0deg, rgba(87, 229, 255, 0.22), transparent 48%);
+  background: conic-gradient(from 0deg, rgba(198, 220, 192, 0.22), transparent 48%);
   border-radius: 100% 0 0 0;
   animation: radar-sweep 5s linear infinite;
   pointer-events: none;
@@ -499,7 +499,7 @@
 
 .radar-n, .radar-e, .radar-s, .radar-w {
   position: absolute;
-  color: rgba(111, 179, 203, 0.45);
+  color: rgba(190, 211, 184, 0.45);
   font-size: 0.4rem;
   letter-spacing: 0.08em;
 }
@@ -519,7 +519,7 @@
 }
 
 .radar-caption b {
-  color: rgba(144, 213, 233, 0.72);
+  color: rgba(190, 211, 184, 0.72);
   font-size: 0.44rem;
   font-weight: 400;
 }
@@ -543,7 +543,7 @@
   height: 45px;
   padding: 0 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(110deg, rgba(7, 20, 32, 0.68), rgba(3, 9, 15, 0.38));
+  background: linear-gradient(110deg, rgba(22, 34, 26, 0.68), rgba(17, 26, 20, 0.38));
   backdrop-filter: blur(6px);
 }
 
@@ -554,7 +554,7 @@
 }
 
 .m-weapon b {
-  color: rgba(230, 250, 255, 0.9);
+  color: rgba(234, 243, 228, 0.9);
   font-size: 0.72rem;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -582,7 +582,7 @@
   flex: 0 0 auto;
   width: 22px;
   height: 22px;
-  border: 1px solid rgba(87, 229, 255, 0.16);
+  border: 1px solid rgba(198, 220, 192, 0.16);
   border-radius: 50%;
 }
 
@@ -593,7 +593,7 @@
   left: 50%;
   top: 50%;
   background: var(--cyan);
-  box-shadow: 0 0 6px rgba(87, 229, 255, 0.55);
+  box-shadow: 0 0 6px rgba(198, 220, 192, 0.55);
 }
 
 .m-weapon-icon.gun::before {
@@ -629,12 +629,12 @@
 }
 
 .m-weapon.boost .m-weapon-icon {
-  border-color: rgba(255, 207, 91, 0.22);
+  border-color: rgba(217, 201, 154, 0.22);
 }
 
 .m-weapon.boost .m-weapon-icon::before {
   background: var(--gold);
-  box-shadow: 0 0 6px rgba(255, 207, 91, 0.6);
+  box-shadow: 0 0 6px rgba(217, 201, 154, 0.6);
 }
 
 /* ---------- RETICLE & LOCK ---------- */
@@ -652,7 +652,7 @@
 .ch {
   position: absolute;
   background: rgba(149, 239, 255, 0.62);
-  box-shadow: 0 0 7px rgba(87, 229, 255, 0.4);
+  box-shadow: 0 0 7px rgba(198, 220, 192, 0.4);
 }
 
 .ch.w, .ch.e {
@@ -690,7 +690,7 @@
   top: 50%;
   width: 31px;
   height: 31px;
-  border: 1px solid rgba(89, 213, 240, 0.33);
+  border: 1px solid rgba(198, 220, 192, 0.33);
   border-radius: 50%;
   transform: translate(-50%, -50%);
 }
@@ -698,23 +698,23 @@
 .ch-ring.inner {
   width: 8px;
   height: 8px;
-  border-color: rgba(89, 213, 240, 0.2);
+  border-color: rgba(198, 220, 192, 0.2);
 }
 
 .mission-crosshair.is-locking .ch-ring {
-  border-color: rgba(255, 207, 91, 0.55);
+  border-color: rgba(217, 201, 154, 0.55);
   animation: reticle-pulse 0.8s ease infinite;
 }
 
 .mission-crosshair.is-locked .ch,
 .mission-crosshair.is-locked .ch-dot {
   background: var(--gold);
-  box-shadow: 0 0 10px rgba(255, 207, 91, 0.65);
+  box-shadow: 0 0 10px rgba(217, 201, 154, 0.65);
 }
 
 .mission-crosshair.is-locked .ch-ring {
-  border-color: rgba(255, 207, 91, 0.75);
-  box-shadow: 0 0 18px rgba(255, 207, 91, 0.12);
+  border-color: rgba(217, 201, 154, 0.75);
+  box-shadow: 0 0 18px rgba(217, 201, 154, 0.12);
 }
 
 .mission-crosshair.hit .ch-dot {
@@ -768,7 +768,7 @@
 }
 
 .mission-target-marker.is-in-reticle .tm-lock-ring {
-  --lock-color: #ffcf5b;
+  --lock-color: #d9c99a;
 }
 
 .mission-target-marker.is-locked .tm-corner {
@@ -837,8 +837,8 @@
   display: block;
   width: 0;
   height: 100%;
-  background: linear-gradient(90deg, rgba(255, 92, 120, 0.7), #ffcf5b);
-  box-shadow: 0 0 9px rgba(255, 207, 91, 0.4);
+  background: linear-gradient(90deg, rgba(255, 92, 120, 0.7), #d9c99a);
+  box-shadow: 0 0 9px rgba(217, 201, 154, 0.4);
   transition: width 0.1s linear;
 }
 
@@ -865,7 +865,7 @@
   border: 1px solid rgba(255, 66, 91, 0.45);
   background:
     linear-gradient(100deg, rgba(75, 4, 16, 0.8), rgba(25, 4, 10, 0.58)),
-    rgba(4, 7, 12, 0.7);
+    rgba(20, 29, 23, 0.7);
   box-shadow: 0 0 35px rgba(255, 36, 68, 0.15), inset 0 0 22px rgba(255, 40, 70, 0.07);
   animation: missile-warning-pulse 0.85s ease infinite;
   backdrop-filter: blur(8px);
@@ -889,10 +889,10 @@
 }
 
 .missile-warning.is-locking {
-  border-color: rgba(255, 207, 91, 0.4);
+  border-color: rgba(217, 201, 154, 0.4);
   background:
     linear-gradient(100deg, rgba(58, 40, 5, 0.72), rgba(22, 17, 4, 0.55)),
-    rgba(4, 7, 12, 0.68);
+    rgba(20, 29, 23, 0.68);
   box-shadow: 0 0 35px rgba(255, 188, 50, 0.1);
 }
 
@@ -985,11 +985,11 @@
 
 .mission-message b {
   margin-top: 3px;
-  color: #e8fcff;
+  color: #f0f6ea;
   font-size: clamp(1rem, 2vw, 1.4rem);
   font-weight: 500;
   letter-spacing: 0.14em;
-  text-shadow: 0 0 22px rgba(87, 229, 255, 0.25);
+  text-shadow: 0 0 22px rgba(198, 220, 192, 0.25);
 }
 
 .mission-message.tone-success small,
@@ -1028,8 +1028,8 @@
   align-items: center;
   gap: 10px;
   padding: 5px 8px;
-  border-right: 1px solid rgba(255, 207, 91, 0.4);
-  background: linear-gradient(90deg, transparent, rgba(7, 17, 27, 0.62));
+  border-right: 1px solid rgba(217, 201, 154, 0.4);
+  background: linear-gradient(90deg, transparent, rgba(22, 34, 26, 0.62));
   color: rgba(208, 236, 245, 0.8);
   font-size: 0.52rem;
   letter-spacing: 0.06em;
@@ -1081,9 +1081,9 @@
   bottom: max(24px, env(safe-area-inset-bottom));
   width: 126px;
   height: 126px;
-  border: 1px solid rgba(87, 229, 255, 0.18);
+  border: 1px solid rgba(198, 220, 192, 0.18);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(87, 229, 255, 0.045), rgba(2, 9, 15, 0.25));
+  background: radial-gradient(circle, rgba(198, 220, 192, 0.045), rgba(20, 29, 23, 0.25));
   pointer-events: auto;
   touch-action: none;
   backdrop-filter: blur(5px);
@@ -1092,7 +1092,7 @@
 .stick-ring {
   position: absolute;
   inset: 22px;
-  border: 1px dashed rgba(87, 229, 255, 0.12);
+  border: 1px dashed rgba(198, 220, 192, 0.12);
   border-radius: 50%;
 }
 
@@ -1103,16 +1103,16 @@
   width: 42px;
   height: 42px;
   margin: -21px 0 0 -21px;
-  border: 1px solid rgba(87, 229, 255, 0.35);
+  border: 1px solid rgba(198, 220, 192, 0.35);
   border-radius: 50%;
-  background: rgba(17, 52, 66, 0.6);
-  box-shadow: 0 0 16px rgba(87, 229, 255, 0.12);
+  background: rgba(34, 52, 40, 0.6);
+  box-shadow: 0 0 16px rgba(198, 220, 192, 0.12);
   pointer-events: none;
 }
 
 .mission-stick.is-active {
-  border-color: rgba(87, 229, 255, 0.45);
-  background: radial-gradient(circle, rgba(87, 229, 255, 0.09), rgba(2, 9, 15, 0.3));
+  border-color: rgba(198, 220, 192, 0.45);
+  background: radial-gradient(circle, rgba(198, 220, 192, 0.09), rgba(20, 29, 23, 0.3));
 }
 
 .mission-buttons {
@@ -1133,9 +1133,9 @@
   gap: 1px;
   width: 55px;
   height: 55px;
-  border: 1px solid rgba(87, 229, 255, 0.22);
+  border: 1px solid rgba(198, 220, 192, 0.22);
   border-radius: 50%;
-  background: rgba(3, 14, 23, 0.58);
+  background: rgba(24, 35, 28, 0.58);
   color: rgba(221, 249, 255, 0.82);
   font-family: var(--display);
   touch-action: none;
@@ -1160,7 +1160,7 @@
   width: 64px;
   height: 64px;
   margin: -5px;
-  border-color: rgba(255, 207, 91, 0.32);
+  border-color: rgba(217, 201, 154, 0.32);
   color: var(--gold);
 }
 
@@ -1172,20 +1172,20 @@
 .m-btn.flare {
   grid-column: 1;
   grid-row: 2;
-  border-color: rgba(255, 110, 159, 0.24);
+  border-color: rgba(201, 154, 140, 0.24);
   color: #ff9cbd;
 }
 
 .m-btn.boost {
   grid-column: 1;
   grid-row: 1;
-  color: #8de5ff;
+  color: #c6dcc0;
 }
 
 .m-btn.is-pressed {
   transform: scale(0.92);
-  background: rgba(87, 229, 255, 0.15);
-  border-color: rgba(87, 229, 255, 0.56);
+  background: rgba(198, 220, 192, 0.15);
+  border-color: rgba(198, 220, 192, 0.56);
 }
 
 /* ---------- OVERLAYS ---------- */
@@ -1200,14 +1200,14 @@
   padding: 28px;
   overflow-y: auto;
   background:
-    radial-gradient(ellipse at 50% 42%, rgba(18, 62, 84, 0.18), transparent 48%),
-    rgba(2, 6, 12, 0.72);
+    radial-gradient(ellipse at 50% 42%, rgba(36, 55, 42, 0.18), transparent 48%),
+    rgba(15, 23, 18, 0.72);
   backdrop-filter: blur(6px);
   pointer-events: auto;
 }
 
 .mission-overlay.compact {
-  background: rgba(2, 6, 12, 0.68);
+  background: rgba(15, 23, 18, 0.68);
 }
 
 .briefing-shell {
@@ -1216,9 +1216,9 @@
   width: min(1080px, 100%);
   max-height: calc(100dvh - 56px);
   overflow: hidden;
-  border: 1px solid rgba(87, 229, 255, 0.19);
+  border: 1px solid rgba(198, 220, 192, 0.19);
   background:
-    linear-gradient(135deg, rgba(10, 26, 43, 0.96), rgba(4, 10, 18, 0.97));
+    linear-gradient(135deg, rgba(24, 37, 28, 0.96), rgba(23, 34, 27, 0.97));
   box-shadow: 0 38px 120px rgba(0, 0, 0, 0.6);
   animation: mission-overlay-in 0.55s var(--ease);
 }
@@ -1234,8 +1234,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 24px 0;
-  border-right: 1px solid rgba(87, 229, 255, 0.1);
-  background: rgba(87, 229, 255, 0.025);
+  border-right: 1px solid rgba(198, 220, 192, 0.1);
+  background: rgba(198, 220, 192, 0.025);
 }
 
 .briefing-rail span {
@@ -1250,7 +1250,7 @@
   width: 1px;
   flex: 1;
   margin: 20px 0;
-  background: linear-gradient(transparent, rgba(87, 229, 255, 0.3), transparent);
+  background: linear-gradient(transparent, rgba(198, 220, 192, 0.3), transparent);
 }
 
 .briefing-rail b {
@@ -1346,7 +1346,7 @@
   padding: 1px 5px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 2px;
-  color: rgba(220, 247, 255, 0.8);
+  color: rgba(230, 241, 224, 0.8);
   font-family: var(--display);
   font-size: 0.5rem;
 }
@@ -1366,9 +1366,9 @@
   flex-direction: column;
   gap: 20px;
   padding: 34px 26px;
-  border-left: 1px solid rgba(87, 229, 255, 0.09);
+  border-left: 1px solid rgba(198, 220, 192, 0.09);
   background:
-    radial-gradient(circle at 50% 20%, rgba(87, 229, 255, 0.055), transparent 44%),
+    radial-gradient(circle at 50% 20%, rgba(198, 220, 192, 0.055), transparent 44%),
     rgba(2, 8, 14, 0.26);
 }
 
@@ -1380,14 +1380,14 @@
   width: 116px;
   height: 116px;
   margin: 3px auto 0;
-  border: 1px solid rgba(87, 229, 255, 0.18);
+  border: 1px solid rgba(198, 220, 192, 0.18);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(87, 229, 255, 0.08), transparent 66%);
-  box-shadow: inset 0 0 28px rgba(87, 229, 255, 0.05);
+  background: radial-gradient(circle, rgba(198, 220, 192, 0.08), transparent 66%);
+  box-shadow: inset 0 0 28px rgba(198, 220, 192, 0.05);
 }
 
 .briefing-emblem span {
-  color: #e8fcff;
+  color: #f0f6ea;
   font-family: var(--display);
   font-size: 2.1rem;
   line-height: 1;
@@ -1432,8 +1432,8 @@
 .mission-end-card {
   width: min(410px, 100%);
   padding: 33px;
-  border: 1px solid rgba(87, 229, 255, 0.18);
-  background: linear-gradient(145deg, rgba(12, 28, 45, 0.97), rgba(4, 10, 18, 0.98));
+  border: 1px solid rgba(198, 220, 192, 0.18);
+  background: linear-gradient(145deg, rgba(26, 39, 30, 0.97), rgba(23, 34, 27, 0.98));
   box-shadow: 0 32px 100px rgba(0, 0, 0, 0.55);
   animation: mission-overlay-in 0.42s var(--ease);
 }
@@ -1478,7 +1478,7 @@
 .mission-pause-stats b {
   display: block;
   margin-top: 3px;
-  color: #dff9ff;
+  color: #e9f2e2;
   font-family: var(--display);
   font-size: 0.9rem;
   font-weight: 400;
@@ -1514,10 +1514,10 @@
   width: 70px;
   height: 70px;
   margin: 13px auto 16px;
-  border: 1px solid rgba(107, 255, 184, 0.32);
+  border: 1px solid rgba(184, 215, 168, 0.32);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(107, 255, 184, 0.11), transparent 68%);
-  box-shadow: 0 0 30px rgba(107, 255, 184, 0.08);
+  background: radial-gradient(circle, rgba(184, 215, 168, 0.11), transparent 68%);
+  box-shadow: 0 0 30px rgba(184, 215, 168, 0.08);
 }
 
 .is-failure .mission-end-mark {
@@ -2053,8 +2053,8 @@
   min-width: 174px;
   padding: 13px 14px;
   transform: translateY(-50%);
-  border: 1px solid rgba(138, 224, 255, 0.24);
-  background: linear-gradient(145deg, rgba(16, 39, 60, 0.62), rgba(5, 17, 29, 0.5));
+  border: 1px solid rgba(198, 220, 192, 0.24);
+  background: linear-gradient(145deg, rgba(31, 47, 36, 0.62), rgba(19, 29, 22, 0.5));
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(7px);
   pointer-events: none;
@@ -2071,7 +2071,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  color: rgba(224, 244, 255, 0.86);
+  color: rgba(230, 241, 224, 0.86);
   font-size: 0.56rem;
   letter-spacing: 0.04em;
 }
@@ -2079,10 +2079,10 @@
 .keyhint kbd {
   flex: 0 0 86px;
   padding: 3px 5px;
-  border: 1px solid rgba(138, 224, 255, 0.28);
+  border: 1px solid rgba(198, 220, 192, 0.28);
   border-radius: 3px;
-  background: rgba(87, 229, 255, 0.075);
-  color: #dff9ff;
+  background: rgba(198, 220, 192, 0.075);
+  color: #e9f2e2;
   text-align: center;
   font-family: var(--display);
   font-size: 0.52rem;
@@ -2098,22 +2098,22 @@
 
 .m-weapon.ultimate {
   min-width: 138px;
-  border-color: rgba(182, 140, 255, 0.26);
-  background: linear-gradient(110deg, rgba(31, 18, 54, 0.72), rgba(7, 10, 24, 0.46));
+  border-color: rgba(198, 220, 192, 0.26);
+  background: linear-gradient(110deg, rgba(30, 43, 34, 0.72), rgba(19, 28, 22, 0.46));
 }
 
 .m-weapon.ultimate.is-ready {
-  border-color: rgba(196, 158, 255, 0.62);
-  box-shadow: 0 0 22px rgba(160, 110, 255, 0.18);
+  border-color: rgba(214, 232, 204, 0.62);
+  box-shadow: 0 0 22px rgba(111, 150, 120, 0.18);
 }
 
 .m-weapon.ultimate.is-active {
-  border-color: rgba(127, 232, 255, 0.72);
-  box-shadow: 0 0 28px rgba(127, 232, 255, 0.24);
+  border-color: rgba(198, 220, 192, 0.72);
+  box-shadow: 0 0 28px rgba(198, 220, 192, 0.24);
 }
 
 .m-weapon.ultimate b {
-  color: #e9dcff;
+  color: #eef6e8;
 }
 
 .m-weapon.ultimate.is-ready b {
@@ -2121,16 +2121,16 @@
 }
 
 .m-weapon.ultimate small {
-  color: rgba(196, 158, 255, 0.72);
+  color: rgba(214, 232, 204, 0.72);
 }
 
 .m-weapon.ultimate.is-ready small {
-  color: #9ff3ff;
+  color: #d3e6c9;
 }
 
 .m-weapon-icon.ultimate {
-  border-color: rgba(182, 140, 255, 0.34);
-  background: radial-gradient(circle, rgba(182, 140, 255, 0.22), transparent 70%);
+  border-color: rgba(198, 220, 192, 0.34);
+  background: radial-gradient(circle, rgba(198, 220, 192, 0.22), transparent 70%);
 }
 
 .m-weapon-icon.ultimate::before {
@@ -2138,18 +2138,18 @@
   height: 10px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: #c9a4ff;
-  box-shadow: 0 0 10px rgba(201, 164, 255, 0.9);
+  background: #c6dcc0;
+  box-shadow: 0 0 10px rgba(214, 232, 204, 0.9);
 }
 
 .m-weapon-icon.ultimate::after {
   width: 16px;
   height: 16px;
-  border: 1px solid rgba(127, 232, 255, 0.6);
+  border: 1px solid rgba(198, 220, 192, 0.6);
   border-radius: 50%;
   background: none;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 8px rgba(127, 232, 255, 0.5);
+  box-shadow: 0 0 8px rgba(198, 220, 192, 0.5);
 }
 
 .m-btn.ultimate {
@@ -2159,13 +2159,13 @@
   width: 118px;
   height: 46px;
   border-radius: 999px;
-  border-color: rgba(182, 140, 255, 0.42);
-  color: #e9dcff;
-  background: rgba(27, 16, 46, 0.66);
+  border-color: rgba(198, 220, 192, 0.42);
+  color: #eef6e8;
+  background: rgba(30, 43, 34, 0.66);
 }
 
 .m-btn.ultimate small {
-  color: rgba(196, 158, 255, 0.78);
+  color: rgba(214, 232, 204, 0.78);
 }
 
 /* ---------- BRIEFING MAP PICKER ---------- */
@@ -2215,18 +2215,18 @@
 }
 
 .briefing-map-options button:hover {
-  border-color: rgba(87, 229, 255, 0.34);
-  background: rgba(87, 229, 255, 0.045);
+  border-color: rgba(198, 220, 192, 0.34);
+  background: rgba(198, 220, 192, 0.045);
 }
 
 .briefing-map-options button.is-active {
-  border-color: rgba(87, 229, 255, 0.58);
-  background: linear-gradient(100deg, rgba(87, 229, 255, 0.12), rgba(87, 229, 255, 0.02));
+  border-color: rgba(198, 220, 192, 0.58);
+  background: linear-gradient(100deg, rgba(198, 220, 192, 0.12), rgba(198, 220, 192, 0.02));
   box-shadow: inset 2px 0 0 var(--cyan);
 }
 
 .briefing-map-options b {
-  color: #e4fbff;
+  color: #eef6e8;
   font-family: var(--display);
   font-size: 0.8rem;
   font-weight: 500;
@@ -2251,5 +2251,76 @@
 
   .m-weapon.ultimate b {
     font-size: 0.62rem;
+  }
+}
+
+/* ---------- STALL WARNING ---------- */
+
+.mission-stall {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  z-index: 14;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 22px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 197, 92, 0.48);
+  background:
+    linear-gradient(100deg, rgba(66, 44, 5, 0.78), rgba(25, 18, 4, 0.58)),
+    rgba(20, 29, 23, 0.62);
+  box-shadow: 0 0 30px rgba(255, 178, 48, 0.14);
+  backdrop-filter: blur(7px);
+  animation: stall-pulse 0.8s ease infinite;
+  pointer-events: none;
+}
+
+.mission-stall strong {
+  color: #ffd27a;
+  font-family: var(--display);
+  font-size: 1.08rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  line-height: 1;
+}
+
+.mission-stall span {
+  color: rgba(255, 225, 180, 0.78);
+  font-size: 0.53rem;
+  letter-spacing: 0.08em;
+}
+
+.mission-stall.is-active {
+  border-color: rgba(255, 72, 86, 0.68);
+  background:
+    linear-gradient(100deg, rgba(82, 5, 15, 0.84), rgba(32, 4, 9, 0.62)),
+    rgba(20, 29, 23, 0.64);
+  box-shadow: 0 0 36px rgba(255, 36, 68, 0.18);
+  animation-duration: 0.42s;
+}
+
+.mission-stall.is-active strong {
+  color: #ff6b83;
+}
+
+@keyframes stall-pulse {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.72; filter: brightness(1.24); }
+}
+
+@media (max-width: 720px) {
+  .mission-stall {
+    top: 23%;
+    padding: 6px 15px;
+  }
+
+  .mission-stall strong {
+    font-size: 0.88rem;
+  }
+
+  .mission-stall span {
+    font-size: 0.48rem;
   }
 }

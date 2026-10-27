@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#24352a" />
   <meta name="description" content="SKY//STRIKE 苍穹突击：浏览器 3D 街机空战。云层隐蔽、仿真雷达、可先发后锁的追踪导弹，以及 3D 局域网组队与 PvP。" />
   <title>SKY//STRIKE · 苍穹突击 · 3D 街机空战</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2357e5ff' d='M32 4 41 27 60 35 41 38 32 60 23 38 4 35 23 27z'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23c6dcc0' d='M32 4 41 27 60 35 41 38 32 60 23 38 4 35 23 27z'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/css/main.css" />
   <link rel="stylesheet" href="/css/mission.css" />
   <link rel="stylesheet" href="/css/air3d.css" />
@@ -571,6 +571,12 @@
           <div class="mw-action">释放诱弹 <kbd>C</kbd> · 大幅机动</div>
         </div>
 
+        <div class="mission-stall" id="mission-stall" hidden>
+          <strong id="mission-stall-title">STALL WARNING</strong>
+          <span id="mission-stall-sub">空气稀薄 · 降低高度</span>
+        </div>
+
+
         <div class="mission-keyhints desktop-only" id="mission-keyhints" aria-label="键位提示">
           <span class="keyhints-title">KEY BINDINGS</span>
           <div class="keyhint"><kbd>鼠标拖动</kbd><span>自由操纵</span></div>
@@ -654,6 +660,8 @@
               <li><i></i> 云层：遮蔽行踪，干扰敌方雷达与导弹</li>
               <li><i></i> 诱弹：欺骗来袭导弹</li>
               <li><i></i> 专属大招：按 R 释放，冷却时间较长</li>
+              <li><i></i> 地形：撞山或撞地会直接坠机</li>
+              <li><i></i> 高空：超过临界高度会失速，注意失速报警</li>
               <li><i></i> 大幅机动：摆脱近距离锁定</li>
             </ul>
           </div>

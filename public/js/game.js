@@ -168,7 +168,7 @@ class BaseCanvasGame {
       life: 0.6,
       maxLife: 0.6,
       size: 2,
-      color: '#8beeff',
+      color: '#c6dcc0',
       drag: 1.8,
       gravity: 0,
       shape: 'dot',
@@ -219,10 +219,10 @@ class BaseCanvasGame {
     const w = this.width;
     const h = this.height;
     const modeTint = this.mode === 'duel'
-      ? ['#090612', '#130c20', '#05040b']
+      ? ['#191712', '#2a241c', '#100e0a']
       : this.mode === 'campaign'
-        ? ['#03080f', '#071b25', '#03070d']
-        : ['#030710', '#071523', '#02050b'];
+        ? ['#121a14', '#1f2d22', '#0d140f']
+        : ['#101812', '#1b2a1f', '#0a120d'];
     const gradient = ctx.createLinearGradient(0, 0, w * 0.4, h);
     gradient.addColorStop(0, modeTint[0]);
     gradient.addColorStop(0.55, modeTint[1]);
@@ -231,7 +231,7 @@ class BaseCanvasGame {
     ctx.fillRect(0, 0, w, h);
 
     const nebula = ctx.createRadialGradient(w * 0.7, h * 0.22, 4, w * 0.7, h * 0.22, w * 0.55);
-    nebula.addColorStop(0, this.mode === 'duel' ? 'rgba(123, 50, 122, 0.11)' : 'rgba(24, 110, 150, 0.12)');
+    nebula.addColorStop(0, this.mode === 'duel' ? 'rgba(126, 106, 84, 0.11)' : 'rgba(96, 132, 104, 0.12)');
     nebula.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = nebula;
     ctx.fillRect(0, 0, w, h);
@@ -239,8 +239,8 @@ class BaseCanvasGame {
     if (this.clouds) {
       for (const cloud of this.clouds) {
         const grad = ctx.createRadialGradient(cloud.x, cloud.y, 0, cloud.x, cloud.y, cloud.r);
-        grad.addColorStop(0, `rgba(70, 150, 184, ${cloud.alpha})`);
-        grad.addColorStop(0.6, `rgba(38, 90, 130, ${cloud.alpha * 0.5})`);
+        grad.addColorStop(0, `rgba(126, 154, 128, ${cloud.alpha})`);
+        grad.addColorStop(0.6, `rgba(74, 102, 80, ${cloud.alpha * 0.5})`);
         grad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -252,13 +252,13 @@ class BaseCanvasGame {
     for (const star of this.stars) {
       ctx.beginPath();
       ctx.arc(star.x, star.y, star.size * (0.5 + star.z), 0, TAU);
-      ctx.fillStyle = `rgba(198, 232, 247, ${0.12 + star.z * 0.44})`;
+      ctx.fillStyle = `rgba(224, 234, 216, ${0.12 + star.z * 0.44})`;
       ctx.fill();
     }
 
     const horizon = ctx.createLinearGradient(0, h * 0.6, 0, h);
     horizon.addColorStop(0, 'rgba(0,0,0,0)');
-    horizon.addColorStop(1, 'rgba(1,4,9,0.55)');
+    horizon.addColorStop(1, 'rgba(6,11,8,0.55)');
     ctx.fillStyle = horizon;
     ctx.fillRect(0, h * 0.58, w, h * 0.42);
   }
@@ -915,22 +915,22 @@ export class CombatGame extends BaseCanvasGame {
     if (pickup.type === 'power') {
       if (this.player.powerLevel < 3) {
         this.player.powerLevel += 1;
-        this.addText(this.player.x, this.player.y - 48, '火力提升', '#ffcf5b');
+        this.addText(this.player.x, this.player.y - 48, '火力提升', '#d9c99a');
       } else {
         this.score += 500;
-        this.addText(this.player.x, this.player.y - 48, '+500', '#ffcf5b');
+        this.addText(this.player.x, this.player.y - 48, '+500', '#d9c99a');
       }
       audio.pickup();
     } else if (pickup.type === 'heal') {
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + 32);
-      this.addText(this.player.x, this.player.y - 48, '+32 结构', '#6bffb8');
+      this.addText(this.player.x, this.player.y - 48, '+32 结构', '#b8d7a8');
       audio.pickup();
     } else if (pickup.type === 'shield') {
       this.player.shield = 7;
-      this.addText(this.player.x, this.player.y - 48, '相位护盾', '#79b9ff');
+      this.addText(this.player.x, this.player.y - 48, '相位护盾', '#b8d7a8');
       audio.shield();
     }
-    this.ring(pickup.x, pickup.y, pickup.type === 'heal' ? '#6bffb8' : pickup.type === 'shield' ? '#79b9ff' : '#ffcf5b', 9, 90);
+    this.ring(pickup.x, pickup.y, pickup.type === 'heal' ? '#b8d7a8' : pickup.type === 'shield' ? '#b8d7a8' : '#d9c99a', 9, 90);
   }
 
   collisions() {
@@ -944,7 +944,7 @@ export class CombatGame extends BaseCanvasGame {
         if (!circleHit(bullet, bullet.radius, enemy, enemy.radius)) continue;
         enemy.hp -= bullet.damage;
         enemy.flash = 1;
-        this.burst(bullet.x, bullet.y, bullet.kind === 'spread' ? '#ffcf5b' : '#8eeeff', 3, 90);
+        this.burst(bullet.x, bullet.y, bullet.kind === 'spread' ? '#d9c99a' : '#c6dcc0', 3, 90);
         audio.hit();
         if (bullet.pierce > 0) {
           bullet.pierce -= 1;
@@ -987,7 +987,7 @@ export class CombatGame extends BaseCanvasGame {
     const gained = Math.round(enemy.score * multiplier);
     this.score += gained;
     this.kills += 1;
-    this.addText(enemy.x, enemy.y - 8, `+${gained}`, this.combo > 3 ? '#ffcf5b' : '#bdefff');
+    this.addText(enemy.x, enemy.y - 8, `+${gained}`, this.combo > 3 ? '#d9c99a' : '#e6f2de');
     this.burst(enemy.x, enemy.y, enemy.type === 'tank' ? '#ff9c55' : '#ff6f86', enemy.type === 'tank' ? 32 : 18, enemy.type === 'tank' ? 260 : 180);
     this.ring(enemy.x, enemy.y, '#ff6f86', 10, 170);
     this.shake = Math.max(this.shake, enemy.type === 'tank' ? 7 : 3.5);
@@ -1007,11 +1007,11 @@ export class CombatGame extends BaseCanvasGame {
     this.kills += 1;
     this.combo += 2;
     this.comboTimer = 4;
-    this.addText(boss.x, boss.y, `+${boss.score}`, '#ffcf5b');
+    this.addText(boss.x, boss.y, `+${boss.score}`, '#d9c99a');
     this.burst(boss.x, boss.y, '#ff5279', 80, 420);
-    this.burst(boss.x, boss.y, '#ffd37a', 44, 300);
+    this.burst(boss.x, boss.y, '#e6d6a8', 44, 300);
     this.ring(boss.x, boss.y, '#ff8dac', 28, 320);
-    this.ring(boss.x, boss.y, '#ffcf5b', 50, 460);
+    this.ring(boss.x, boss.y, '#d9c99a', 50, 460);
     this.shake = 25;
     this.flash = 0.9;
     audio.explosion(3);
@@ -1059,10 +1059,10 @@ export class CombatGame extends BaseCanvasGame {
     if (player.shield > 0) {
       player.shield = 0;
       player.invuln = 0.6;
-      this.ring(player.x, player.y, '#8ac4ff', 18, 210);
-      this.burst(player.x, player.y, '#8ac4ff', 18, 180);
+      this.ring(player.x, player.y, '#b8d7a8', 18, 210);
+      this.burst(player.x, player.y, '#b8d7a8', 18, 180);
       audio.shield();
-      this.addText(player.x, player.y - 42, '护盾碎裂', '#8ac4ff');
+      this.addText(player.x, player.y - 42, '护盾碎裂', '#b8d7a8');
       return;
     }
     player.hp = Math.max(0, player.hp - amount);
@@ -1085,7 +1085,7 @@ export class CombatGame extends BaseCanvasGame {
     this.player.alive = false;
     this.burst(this.player.x, this.player.y, '#ffbe68', 70, 360);
     this.burst(this.player.x, this.player.y, '#ff4968', 50, 270);
-    this.ring(this.player.x, this.player.y, '#ffcf5b', 22, 330);
+    this.ring(this.player.x, this.player.y, '#d9c99a', 22, 330);
     this.shake = 28;
     this.flash = 1;
     this.clearHostileFire();
@@ -1237,12 +1237,12 @@ export class CombatGame extends BaseCanvasGame {
       ctx.globalCompositeOperation = 'lighter';
       ctx.beginPath();
       ctx.arc(player.x, player.y, player.radius + 13 + Math.sin(this.time * 4) * 2, 0, TAU);
-      ctx.strokeStyle = rgba('#85b9ff', 0.45);
+      ctx.strokeStyle = rgba('#b8d7a8', 0.45);
       ctx.lineWidth = 1.2;
       ctx.stroke();
       const shield = ctx.createRadialGradient(player.x, player.y, player.radius, player.x, player.y, player.radius + 20);
-      shield.addColorStop(0, 'rgba(101, 152, 255, 0)');
-      shield.addColorStop(1, 'rgba(101, 152, 255, 0.14)');
+      shield.addColorStop(0, 'rgba(184, 215, 168, 0)');
+      shield.addColorStop(1, 'rgba(184, 215, 168, 0.14)');
       ctx.fillStyle = shield;
       ctx.beginPath();
       ctx.arc(player.x, player.y, player.radius + 20, 0, TAU);
@@ -1273,7 +1273,7 @@ export class CombatGame extends BaseCanvasGame {
     ctx.globalCompositeOperation = 'lighter';
     const palette = resolvePalette(this.skinId, this.time);
     for (const bullet of this.bullets) {
-      const color = bullet.kind === 'spread' ? '#ffcf5b' : palette.glow;
+      const color = bullet.kind === 'spread' ? '#d9c99a' : palette.glow;
       const grad = ctx.createLinearGradient(bullet.x, bullet.y + 10, bullet.x, bullet.y - 14);
       grad.addColorStop(0, rgba(color, 0));
       grad.addColorStop(0.4, rgba(color, 0.7));
@@ -1334,10 +1334,10 @@ export class CombatGame extends BaseCanvasGame {
     ctx.globalCompositeOperation = 'lighter';
     for (const pickup of this.pickups) {
       const palette = pickup.type === 'heal'
-        ? ['#6bffb8', '#2ad69b']
+        ? ['#b8d7a8', '#2ad69b']
         : pickup.type === 'shield'
-          ? ['#82b7ff', '#3d62d9']
-          : ['#ffcf5b', '#ff8f35'];
+          ? ['#b8d7a8', '#6f977c']
+          : ['#d9c99a', '#ff8f35'];
       const pulse = 1 + Math.sin(this.time * 4 + pickup.phase) * 0.12;
       const glow = ctx.createRadialGradient(pickup.x, pickup.y, 0, pickup.x, pickup.y, 25);
       glow.addColorStop(0, rgba(palette[0], 0.4));
@@ -1360,7 +1360,7 @@ export class CombatGame extends BaseCanvasGame {
       ctx.stroke();
       ctx.restore();
 
-      ctx.fillStyle = '#04101a';
+      ctx.fillStyle = '#131d16';
       ctx.font = 'bold 9px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -1843,17 +1843,17 @@ export class DuelGame extends BaseCanvasGame {
     ctx.scale(scale, scale);
 
     const arena = ctx.createLinearGradient(0, 0, PVP.arenaWidth, PVP.arenaHeight);
-    arena.addColorStop(0, 'rgba(5, 12, 22, 0.38)');
-    arena.addColorStop(0.5, 'rgba(9, 10, 27, 0.2)');
-    arena.addColorStop(1, 'rgba(15, 5, 19, 0.4)');
+    arena.addColorStop(0, 'rgba(17, 26, 20, 0.38)');
+    arena.addColorStop(0.5, 'rgba(24, 22, 18, 0.2)');
+    arena.addColorStop(1, 'rgba(28, 17, 14, 0.4)');
     ctx.fillStyle = arena;
     ctx.fillRect(0, 0, PVP.arenaWidth, PVP.arenaHeight);
 
-    ctx.strokeStyle = 'rgba(255, 110, 159, 0.09)';
+    ctx.strokeStyle = 'rgba(201, 154, 140, 0.09)';
     ctx.lineWidth = 1 / scale;
     ctx.strokeRect(1 / scale, 1 / scale, PVP.arenaWidth - 2 / scale, PVP.arenaHeight - 2 / scale);
 
-    ctx.strokeStyle = 'rgba(87, 229, 255, 0.035)';
+    ctx.strokeStyle = 'rgba(198, 220, 192, 0.035)';
     for (let x = 120; x < PVP.arenaWidth; x += 120) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
@@ -1869,11 +1869,11 @@ export class DuelGame extends BaseCanvasGame {
 
     ctx.beginPath();
     ctx.arc(PVP.arenaWidth / 2, PVP.arenaHeight / 2, 58, 0, TAU);
-    ctx.strokeStyle = 'rgba(255, 110, 159, 0.09)';
+    ctx.strokeStyle = 'rgba(201, 154, 140, 0.09)';
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(PVP.arenaWidth / 2, PVP.arenaHeight / 2, 4, 0, TAU);
-    ctx.fillStyle = 'rgba(255, 110, 159, 0.2)';
+    ctx.fillStyle = 'rgba(201, 154, 140, 0.2)';
     ctx.fill();
 
     for (let i = this.remoteBullets.length - 1; i >= 0; i -= 1) {
@@ -1890,7 +1890,7 @@ export class DuelGame extends BaseCanvasGame {
       ctx.fill();
       ctx.beginPath();
       ctx.arc(bullet.x, bullet.y, 3, 0, TAU);
-      ctx.fillStyle = '#ff7d9d';
+      ctx.fillStyle = '#c99a8c';
       ctx.fill();
       ctx.restore();
     }
@@ -1919,7 +1919,7 @@ export class DuelGame extends BaseCanvasGame {
       });
       ctx.beginPath();
       ctx.arc(x, y, isSelf ? 26 : 22, 0, TAU);
-      ctx.strokeStyle = isSelf ? 'rgba(87, 229, 255, 0.22)' : 'rgba(255, 110, 159, 0.24)';
+      ctx.strokeStyle = isSelf ? 'rgba(198, 220, 192, 0.22)' : 'rgba(201, 154, 140, 0.24)';
       ctx.lineWidth = 1 / scale;
       ctx.stroke();
     };
@@ -1930,7 +1930,7 @@ export class DuelGame extends BaseCanvasGame {
     if (this.player.invuln > 0) {
       ctx.beginPath();
       ctx.arc(this.player.x, this.player.y, 34 + Math.sin(this.time * 8) * 2, 0, TAU);
-      ctx.strokeStyle = 'rgba(87, 229, 255, 0.35)';
+      ctx.strokeStyle = 'rgba(198, 220, 192, 0.35)';
       ctx.lineWidth = 1.2 / scale;
       ctx.stroke();
     }
@@ -1948,7 +1948,7 @@ export class DuelGame extends BaseCanvasGame {
     }
     ctx.restore();
 
-    ctx.strokeStyle = 'rgba(87, 229, 255, 0.16)';
+    ctx.strokeStyle = 'rgba(198, 220, 192, 0.16)';
     ctx.lineWidth = 1;
     ctx.strokeRect(ox + 0.5, oy + 0.5, aw - 1, ah - 1);
 
@@ -1958,8 +1958,8 @@ export class DuelGame extends BaseCanvasGame {
     ctx.fillStyle = topGrad;
     ctx.fillRect(ox, oy, aw, 60);
     const bottomGrad = ctx.createLinearGradient(0, oy + ah, 0, oy + ah - 60);
-    bottomGrad.addColorStop(0, 'rgba(87, 229, 255, 0.09)');
-    bottomGrad.addColorStop(1, 'rgba(87, 229, 255, 0)');
+    bottomGrad.addColorStop(0, 'rgba(198, 220, 192, 0.09)');
+    bottomGrad.addColorStop(1, 'rgba(198, 220, 192, 0)');
     ctx.fillStyle = bottomGrad;
     ctx.fillRect(ox, oy + ah - 60, aw, 60);
 

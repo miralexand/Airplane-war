@@ -457,7 +457,7 @@ export class MenuScene {
     this.time = 0;
     this.last = 0;
     this.running = false;
-    this.theme = 'default';
+    this.theme = 'sage';
     this.raf = null;
     this.resize = this.resize.bind(this);
     this.loop = this.loop.bind(this);

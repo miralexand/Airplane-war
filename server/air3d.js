@@ -480,6 +480,34 @@ export function attachAir3DServer(io) {
       }
     });
 
+    socket.on('air3d:crash', (payload, ack) => {
+      const room = rooms.get(socket.data.air3dCode);
+      if (!room || room.status !== 'active' || room.mode !== 'pvp' || !allow(socket, 'crash', 3, 1000)) {
+        if (typeof ack === 'function') ack({ ok: false });
+        return;
+      }
+      const slot = findSlot(room, socket);
+      if (slot < 0) {
+        if (typeof ack === 'function') ack({ ok: false });
+        return;
+      }
+      const player = room.players.find((entry) => entry.slot === slot);
+      if (!player || player.alive === false) {
+        if (typeof ack === 'function') ack({ ok: true });
+        return;
+      }
+      player.hp = 0;
+      player.alive = false;
+      broadcast(room, 'air3d:pvpDeath', {
+        targetSlot: slot,
+        bySlot: -1,
+        kills: player.kills || 0,
+        players: roomPlayers(room)
+      });
+      endPvpRoom(room);
+      if (typeof ack === 'function') ack({ ok: true });
+    });
+
     socket.on('air3d:end', (payload) => {
       const room = rooms.get(socket.data.air3dCode);
       if (!room || !allow(socket, 'end', 5, 1000)) return;

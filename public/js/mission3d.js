@@ -542,6 +542,11 @@ export class Mission3D {
     this.missileHits = 0;
     this.ammoEmptyWarned = false;
     this.gForce = 1;
+    this.stall = false;
+    this.stallWarning = false;
+    this.stallWarnTimer = 0;
+    this.terrainWarned = false;
+    this.mountainColliders = [];
     this.nextEnemyId = 1;
     this.networkStateClock = 0;
     this.snapshotClock = 0;
@@ -648,6 +653,7 @@ export class Mission3D {
     this.scene.add(this.ocean);
 
     this.islands = [];
+    this.mountainColliders = [];
     for (let i = 0; i < 14; i += 1) {
       const angle = rand(0, TAU);
       const distance = rand(theme.island.distance[0], theme.island.distance[1]);
@@ -688,6 +694,14 @@ export class Mission3D {
       island.rotation.y = rand(0, TAU);
       this.scene.add(island);
       this.islands.push(island);
+      this.mountainColliders.push({
+        x: island.position.x,
+        z: island.position.z,
+        radius,
+        outerRadius: radius * 1.55,
+        height: height * 1.04,
+        baseY: 4
+      });
     }
 
     this.cloudTexture = makeCloudTexture();
@@ -754,7 +768,7 @@ export class Mission3D {
     this.shieldMesh = new THREE.Mesh(
       new THREE.SphereGeometry(10.5, 20, 14),
       new THREE.MeshBasicMaterial({
-        color: '#8fe8ff',
+        color: '#c6dcc0',
         transparent: true,
         opacity: 0.2,
         side: THREE.DoubleSide,
@@ -1219,6 +1233,10 @@ export class Mission3D {
     this.playerModel.visible = true;
     this.groundWarned = false;
     this.boundaryWarned = false;
+    this.stall = false;
+    this.stallWarning = false;
+    this.stallWarnTimer = 0;
+    this.terrainWarned = false;
     this.lockBeepAccumulator = 0;
     this.warningBeepTimer = 0;
     this.hitMarkerTime = 0;
@@ -1474,12 +1492,38 @@ export class Mission3D {
     if (this.keys.has('KeyQ')) manualRoll -= 1;
     if (this.keys.has('KeyE')) manualRoll += 1;
 
-    this.yawRate = -yawInput * 1.38 * this.agilityScale;
-    this.pitchRate = pitchInput * 1.52 * this.agilityScale;
+    const altitude = player.position.y;
+    const thinAir = clamp((altitude - 1250) / 450, 0, 1);
+    const warningNow = altitude > 1380;
+    const stallNow = altitude > 1620;
+    if (stallNow && !this.stall) {
+      this.stall = true;
+      this.cameraShake = Math.max(this.cameraShake, 14);
+      this.message('STALL', '失速 · 推杆下降恢复速度', 'danger');
+      audio.warningBeep(true);
+    } else if (this.stall && altitude < 1500) {
+      this.stall = false;
+      this.message('STALL RECOVERED', '失速已改出', 'success');
+      audio.lockedBeep();
+    }
+    if (warningNow && !this.stallWarning && !this.stall) {
+      this.message('STALL WARNING', '空气稀薄 · 降低高度', 'warning');
+    }
+    this.stallWarning = warningNow && !this.stall;
+    this.stallWarnTimer = Math.max(0, this.stallWarnTimer - dt);
+    if ((this.stallWarning || this.stall) && this.stallWarnTimer <= 0) {
+      this.stallWarnTimer = this.stall ? 0.9 : 0.65;
+      audio.warningBeep(true);
+    }
+
+    const authority = this.stall ? 0.28 : 1 - thinAir * 0.45;
+    this.yawRate = -yawInput * 1.38 * this.agilityScale * authority;
+    this.pitchRate = pitchInput * 1.52 * this.agilityScale * authority;
     this.rollRate = damp(this.rollRate, (-yawInput * 0.86 + manualRoll * 0.7) * this.agilityScale, 10, dt);
 
     this.yaw += this.yawRate * dt;
     this.pitch = clamp(this.pitch + this.pitchRate * dt, -1.32, 1.32);
+    if (this.stall) this.pitch = damp(this.pitch, -0.55, 2.4, dt);
     this.roll = damp(this.roll, -yawInput * 0.78 + manualRoll * 0.6, 8, dt);
 
     const qYaw = new THREE.Quaternion().setFromAxisAngle(UP, this.yaw);
@@ -1496,27 +1540,31 @@ export class Mission3D {
       this.boost = Math.min(100, this.boost + dt * 14);
       this.boostActive = false;
     }
-    const targetSpeed = this.flightSpeed + (this.boostActive ? this.boostSpeed : 0) + (this.ultimateActive > 0 ? 240 : 0);
+    const densityFactor = this.stall ? 0.48 : 1 - thinAir * 0.45;
+    const targetSpeed = (this.flightSpeed + (this.boostActive ? this.boostSpeed : 0) + (this.ultimateActive > 0 ? 240 : 0)) * densityFactor;
     player.speed = damp(player.speed, targetSpeed, this.boostActive ? 2.8 : 1.8, dt);
     const targetVelocity = forward.multiplyScalar(player.speed);
     player.velocity.lerp(targetVelocity, 1 - Math.exp(-2.8 * dt));
     player.position.addScaledVector(player.velocity, dt);
 
-    if (player.position.y < 48) {
-      player.position.y = 48;
-      if (player.velocity.y < 0) player.velocity.y *= -0.25;
+    if (player.position.y < 120) {
       if (!this.groundWarned) {
         this.groundWarned = true;
-        this.message('PULL UP', '地形接近', 'warning');
+        this.message('PULL UP', '地形接近 · 撞地会坠机', 'warning');
         this.cameraShake = Math.max(this.cameraShake, 5);
       }
-    } else if (player.position.y > 130) {
+    } else if (player.position.y > 180) {
       this.groundWarned = false;
     }
-    if (player.position.y > 1700) {
-      player.position.y = 1700;
+    if (player.position.y <= 16) {
+      this.crashPlayer('ground');
+      return;
+    }
+    if (player.position.y > 2050) {
+      player.position.y = 2050;
       player.velocity.y = Math.min(0, player.velocity.y);
     }
+    if (this.checkTerrainCollision()) return;
 
     const horizontalDistance = Math.hypot(player.position.x, player.position.z);
     if (horizontalDistance > 5200) {
@@ -2036,13 +2084,13 @@ export class Mission3D {
       for (const enemy of [...this.enemies]) {
         if (!enemy.alive) continue;
         if (enemy.position.distanceTo(this.player.position) > radius) continue;
-        this.addTracer(this.player.position.clone(), enemy.position.clone(), '#9be8ff', 0.38, 9);
-        this.spawnSparks(enemy.position.clone(), '#8fe8ff', 9);
+        this.addTracer(this.player.position.clone(), enemy.position.clone(), '#d3e6c9', 0.38, 9);
+        this.spawnSparks(enemy.position.clone(), '#c6dcc0', 9);
         this.damageEnemy(enemy, enemy.isPvpTarget ? 52 : 90);
         hits += 1;
       }
       this.spawnExplosion(this.player.position.clone(), 2.5);
-      this.spawnShockwave(this.player.position.clone(), '#8fe8ff', 240);
+      this.spawnShockwave(this.player.position.clone(), '#c6dcc0', 240);
       this.message('ULTIMATE', `${ultimate.name} · 命中 ${hits} 个目标`, hits ? 'success' : 'info');
       return;
     }
@@ -2055,7 +2103,7 @@ export class Mission3D {
       this.ultimateShield = 8;
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + 90);
       if (this.shieldMesh) this.shieldMesh.visible = true;
-      this.spawnShockwave(this.player.position.clone(), '#8fe8ff', 120);
+      this.spawnShockwave(this.player.position.clone(), '#c6dcc0', 120);
       this.message('ULTIMATE', `${ultimate.name} · 能量壁垒展开`, 'success');
       return;
     }
@@ -2398,12 +2446,56 @@ export class Mission3D {
     }
   }
 
+  checkTerrainCollision() {
+    const player = this.player;
+    const altitude = player.position.y;
+    const clearance = Math.max(10, player.radius * 0.7);
+    let nearTerrain = false;
+    for (const collider of this.mountainColliders) {
+      const dx = player.position.x - collider.x;
+      const dz = player.position.z - collider.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > collider.outerRadius) continue;
+      const surfaceY = distance >= collider.radius
+        ? 8
+        : collider.baseY + collider.height * (1 - distance / collider.radius);
+      if (altitude < surfaceY + clearance) {
+        this.crashPlayer('mountain');
+        return true;
+      }
+      if (altitude < surfaceY + 210) nearTerrain = true;
+    }
+    if (nearTerrain && !this.terrainWarned) {
+      this.terrainWarned = true;
+      this.message('TERRAIN AHEAD', '前方山体 · 立即拉升', 'warning');
+      audio.warningBeep(true);
+      this.cameraShake = Math.max(this.cameraShake, 4);
+    } else if (!nearTerrain) {
+      this.terrainWarned = false;
+    }
+    return false;
+  }
+
+  crashPlayer(reason = 'ground') {
+    if (!this.player.alive || this.state !== 'playing') return;
+    this.player.alive = false;
+    this.player.hp = 0;
+    this.stall = false;
+    this.stallWarning = false;
+    this.playerModel.visible = false;
+    this.spawnExplosion(this.player.position.clone(), 3.4);
+    this.cameraShake = 24;
+    audio.explosion3d(3);
+    if (this.isPvp && this.network) this.callbacks.onNetworkCrash?.();
+    this.endMission(false, reason);
+  }
+
   damagePlayer(amount, source) {
     if (!this.player.alive || this.player.invuln > 0) return;
     let incoming = amount;
     if (this.ultimateShield > 0) {
       incoming *= 0.18;
-      this.spawnSparks(this.player.position.clone(), '#8fe8ff', 6);
+      this.spawnSparks(this.player.position.clone(), '#c6dcc0', 6);
     }
     this.player.hp = Math.max(0, this.player.hp - incoming);
     this.player.invuln = 0.35;
@@ -2668,6 +2760,8 @@ export class Mission3D {
       this.message(success ? 'DOGFIGHT WON' : 'DOGFIGHT LOST', success ? '你赢下了这场混战' : '你被击落了', success ? 'success' : 'danger');
     } else if (success) {
       this.message('MISSION COMPLETE', '目标全部击落', 'success');
+    } else if (reason === 'ground' || reason === 'mountain') {
+      this.message(reason === 'mountain' ? 'TERRAIN IMPACT' : 'GROUND IMPACT', reason === 'mountain' ? '撞山坠机' : '撞地坠机', 'danger');
     } else {
       this.message(reason === 'timeout' ? 'TIME EXPIRED' : 'AIRCRAFT DOWN', '任务失败', 'danger');
     }
@@ -2850,6 +2944,11 @@ export class Mission3D {
     this._hud.map = this.mapId;
     this._hud.score = this.score;
     this._hud.cloud = this.cloudImmersion;
+    this._hud.stall = {
+      warning: this.stallWarning,
+      active: this.stall,
+      altitude: Math.round(this.player.position.y)
+    };
     this._hud.networkMode = this.networkMode;
     this._hud.networkRole = this.networkRole;
     this._hud.network = this.network

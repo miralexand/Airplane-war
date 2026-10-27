@@ -18,9 +18,9 @@
   min-height: 410px;
   padding: 25px;
   overflow: hidden;
-  border: 1px solid rgba(87, 229, 255, 0.14);
+  border: 1px solid rgba(198, 220, 192, 0.14);
   background:
-    linear-gradient(145deg, rgba(11, 28, 45, 0.78), rgba(4, 10, 18, 0.56));
+    linear-gradient(145deg, rgba(29, 43, 33, 0.78), rgba(23, 34, 27, 0.56));
 }
 
 .air3d-card::before {
@@ -30,7 +30,7 @@
   left: 25px;
   right: 25px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(87, 229, 255, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(198, 220, 192, 0.3), transparent);
 }
 
 .air3d-card > h3 {
@@ -62,14 +62,14 @@
 }
 
 .air3d-mode:hover {
-  border-color: rgba(87, 229, 255, 0.28);
-  background: rgba(87, 229, 255, 0.035);
+  border-color: rgba(198, 220, 192, 0.28);
+  background: rgba(198, 220, 192, 0.035);
 }
 
 .air3d-mode.is-active {
-  border-color: rgba(87, 229, 255, 0.46);
-  background: linear-gradient(100deg, rgba(87, 229, 255, 0.085), rgba(3, 11, 19, 0.14));
-  box-shadow: inset 3px 0 0 var(--cyan), 0 0 28px rgba(87, 229, 255, 0.04);
+  border-color: rgba(198, 220, 192, 0.46);
+  background: linear-gradient(100deg, rgba(198, 220, 192, 0.085), rgba(23, 34, 27, 0.14));
+  box-shadow: inset 3px 0 0 var(--cyan), 0 0 28px rgba(198, 220, 192, 0.04);
 }
 
 .air3d-mode-icon {
@@ -77,9 +77,9 @@
   flex: 0 0 auto;
   width: 46px;
   height: 46px;
-  border: 1px solid rgba(87, 229, 255, 0.23);
+  border: 1px solid rgba(198, 220, 192, 0.23);
   border-radius: 50%;
-  background: rgba(87, 229, 255, 0.045);
+  background: rgba(198, 220, 192, 0.045);
 }
 
 .air3d-mode-icon i {
@@ -89,7 +89,7 @@
   height: 4px;
   margin-top: -2px;
   background: var(--cyan);
-  box-shadow: 0 0 8px rgba(87, 229, 255, 0.6);
+  box-shadow: 0 0 8px rgba(198, 220, 192, 0.6);
   clip-path: polygon(0 50%, 100% 0, 100% 100%);
 }
 
@@ -103,13 +103,13 @@
 }
 
 .air3d-mode-icon.duel {
-  border-color: rgba(255, 110, 159, 0.24);
-  background: rgba(255, 110, 159, 0.045);
+  border-color: rgba(201, 154, 140, 0.24);
+  background: rgba(201, 154, 140, 0.045);
 }
 
 .air3d-mode-icon.duel i {
   background: var(--rose);
-  box-shadow: 0 0 8px rgba(255, 110, 159, 0.6);
+  box-shadow: 0 0 8px rgba(201, 154, 140, 0.6);
 }
 
 .air3d-mode-icon.duel i:first-child {
@@ -132,7 +132,7 @@
 }
 
 .air3d-mode-copy b {
-  color: #e3faff;
+  color: #f0f6ea;
   font-family: var(--display);
   font-size: 0.9rem;
   font-weight: 500;
@@ -168,7 +168,7 @@
 
 .air3d-mode.is-active .air3d-mode-tag {
   color: var(--cyan);
-  border-color: rgba(87, 229, 255, 0.25);
+  border-color: rgba(198, 220, 192, 0.25);
 }
 
 .air3d-loadout {
@@ -187,7 +187,7 @@
 }
 
 .air3d-loadout b {
-  color: #e4fbff;
+  color: #eef6e8;
   font-family: var(--display);
   font-size: 0.82rem;
   font-weight: 400;
@@ -250,11 +250,11 @@
   flex-direction: column;
   gap: 2px;
   padding-left: 11px;
-  border-left: 1px solid rgba(87, 229, 255, 0.18);
+  border-left: 1px solid rgba(198, 220, 192, 0.18);
 }
 
 .air3d-info-list b {
-  color: #cfeff8;
+  color: #dbe8d5;
   font-family: var(--display);
   font-size: 0.62rem;
   font-weight: 400;
@@ -347,9 +347,9 @@
   gap: 14px;
   transform: translateX(-50%);
   padding: 5px 14px;
-  border-top: 1px solid rgba(255, 110, 159, 0.25);
-  border-bottom: 1px solid rgba(255, 110, 159, 0.16);
-  background: linear-gradient(90deg, transparent, rgba(29, 8, 18, 0.4), transparent);
+  border-top: 1px solid rgba(201, 154, 140, 0.25);
+  border-bottom: 1px solid rgba(201, 154, 140, 0.16);
+  background: linear-gradient(90deg, transparent, rgba(52, 37, 32, 0.4), transparent);
 }
 
 .mpv-side {
@@ -399,7 +399,7 @@
   align-items: flex-end;
   gap: 2px;
   padding-right: 9px;
-  border-right: 1px solid rgba(87, 229, 255, 0.32);
+  border-right: 1px solid rgba(198, 220, 192, 0.32);
 }
 
 .mission-wingman-badge span {
@@ -409,7 +409,7 @@
 }
 
 .mission-wingman-badge b {
-  color: #d9f8ff;
+  color: #e6f0de;
   font-family: var(--display);
   font-size: 0.62rem;
   font-weight: 400;
@@ -425,8 +425,8 @@
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(ellipse at center, rgba(14, 48, 68, 0.16), transparent 48%),
-    rgba(2, 6, 12, 0.52);
+    radial-gradient(ellipse at center, rgba(30, 48, 36, 0.16), transparent 48%),
+    rgba(15, 23, 18, 0.52);
 }
 
 .mission-lan-countdown > span {
@@ -438,12 +438,12 @@
 
 .mission-lan-countdown > strong {
   margin: 4px 0 2px;
-  color: #f1fdff;
+  color: #f5f9ef;
   font-family: var(--display);
   font-size: clamp(5rem, 12vw, 8rem);
   font-weight: 500;
   line-height: 1;
-  text-shadow: 0 0 54px rgba(87, 229, 255, 0.22);
+  text-shadow: 0 0 54px rgba(198, 220, 192, 0.22);
 }
 
 .mission-lan-countdown > small {
