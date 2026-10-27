@@ -260,10 +260,12 @@ app.post('/api/hangar/buy', requireAuth, rateLimit(20, 60_000), async (req, res)
 app.post('/api/hangar/equip', requireAuth, async (req, res) => {
   const planeId = String(req.body?.plane || '');
   const skinId = String(req.body?.skin || '');
-  if (planeId && !req.user.ownedPlanes.includes(planeId)) {
+  const plane = PLANES.find((entry) => entry.id === planeId);
+  const skin = SKINS.find((entry) => entry.id === skinId);
+  if (planeId && !(plane?.unlock === 'free' || req.user.ownedPlanes.includes(planeId))) {
     return res.status(400).json({ error: '尚未解锁这架战机。' });
   }
-  if (skinId && !req.user.ownedSkins.includes(skinId)) {
+  if (skinId && !(skin?.unlock === 'free' || req.user.ownedSkins.includes(skinId))) {
     return res.status(400).json({ error: '尚未解锁这套涂装。' });
   }
   if (planeId) req.user.equippedPlane = planeId;

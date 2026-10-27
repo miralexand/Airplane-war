@@ -162,7 +162,8 @@ const WING_SHAPES = {
   falcon: [[0.42, -1.25], [5.0, 1.0], [4.25, 1.95], [0.52, 1.62]],
   viper: [[0.38, -1.62], [5.5, -0.82], [4.7, 1.26], [0.48, 1.62]],
   titan: [[0.55, -0.92], [6.25, 0.64], [5.5, 2.25], [0.7, 1.9]],
-  nova: [[0.4, -2.15], [5.9, -1.54], [6.15, 0.76], [0.6, 1.72]]
+  nova: [[0.4, -2.15], [5.9, -1.54], [6.15, 0.76], [0.6, 1.72]],
+  bastion: [[0.62, -1.05], [7.1, 0.72], [6.4, 2.45], [0.8, 2.15]]
 };
 
 function buildFighter(planeId, palette, enemy = false) {
@@ -219,7 +220,7 @@ function buildFighter(planeId, palette, enemy = false) {
     side: THREE.DoubleSide
   });
 
-  const lengthScale = shapeKey === 'viper' ? 1.08 : shapeKey === 'titan' ? 0.94 : 1;
+  const lengthScale = shapeKey === 'viper' ? 1.08 : shapeKey === 'titan' ? 0.94 : shapeKey === 'bastion' ? 0.86 : 1;
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.78, 5.5 * lengthScale, 7), bodyMaterial);
   body.rotation.x = Math.PI / 2;
   body.position.z = 0.15;
@@ -264,7 +265,7 @@ function buildFighter(planeId, palette, enemy = false) {
     const wingLight = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 6), new THREE.MeshBasicMaterial({
       color: side < 0 ? '#ff465b' : '#6dffc4'
     }));
-    wingLight.position.set(side * (shapeKey === 'titan' ? 5.55 : 4.75), 0.06, shapeKey === 'viper' ? -0.45 : 1.15);
+    wingLight.position.set(side * (shapeKey === 'bastion' ? 6.35 : shapeKey === 'titan' ? 5.55 : 4.75), 0.06, shapeKey === 'viper' ? -0.45 : 1.15);
     group.add(wingLight);
 
     const intake = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.38, 1.5), darkMaterial);
@@ -281,7 +282,7 @@ function buildFighter(planeId, palette, enemy = false) {
   cockpit.position.set(0, 0.56, -1.6);
   group.add(cockpit);
 
-  const engines = shapeKey === 'titan' ? [-1.55, 1.55] : [-0.38, 0.38];
+  const engines = shapeKey === 'bastion' ? [-2.3, 0, 2.3] : shapeKey === 'titan' ? [-1.55, 1.55] : [-0.38, 0.38];
   const flames = [];
   const flameOuters = [];
   for (const engineX of engines) {
@@ -387,13 +388,28 @@ export class Mission3D {
     this.skinId = getSkin(options.skin).id;
     this.plane = getPlane(this.planeId);
     this.skin = getSkin(this.skinId);
+    const loadout = this.plane.loadout || {};
+    this.maxHp = loadout.hp || 120;
+    this.cannonDamage = loadout.cannonDamage ?? loadout.damage ?? 6;
+    this.cannonAmmoMax = loadout.ammo || 360;
+    this.cannonAmmo = this.cannonAmmoMax;
+    this.cannonDelay = Math.max(0.075, loadout.fireDelay || 0.135);
+    const stats = this.plane.stats || {};
+    this.agilityScale = 0.62 + (stats.handling || 3) * 0.11;
+    this.flightSpeed = 136 * (0.78 + (stats.speed || 3) * 0.06);
+    this.boostSpeed = 100 + (stats.speed || 3) * 4;
     this.network = options.network || null;
     this.networkRole = this.network?.role || null;
     this.networkMode = this.network?.mode || null;
     this.isNetworkHost = this.networkRole === 'host';
     this.isNetworkGuest = this.networkRole === 'guest';
     this.isPvp = this.networkMode === 'pvp';
-    this.opponentProfile = this.network?.opponent || {
+    this.networkPlayers = Array.isArray(this.network?.players) ? this.network.players : [];
+    this.selfSlot = Number.isFinite(Number(this.network?.slot))
+      ? Number(this.network.slot)
+      : (this.isNetworkHost ? 0 : 1);
+    const otherProfiles = this.networkPlayers.filter((player) => Number(player.slot) !== this.selfSlot);
+    this.opponentProfile = this.network?.opponent || otherProfiles[0] || {
       name: 'WINGMAN',
       plane: 'falcon',
       skin: 'chrome'
@@ -433,19 +449,13 @@ export class Mission3D {
     this.shotsFired = 0;
     this.cannonHits = 0;
     this.missileHits = 0;
+    this.ammoEmptyWarned = false;
     this.gForce = 1;
     this.nextEnemyId = 1;
     this.networkStateClock = 0;
     this.snapshotClock = 0;
-    this.remoteTargetPosition = new THREE.Vector3(0, 330, -500);
-    this.remoteTargetQuaternion = new THREE.Quaternion();
-    this.remoteGroup = null;
-    this.remoteObject = null;
+    this.remotePlayers = new Map();
     this.pvpState = {
-      hostHp: 120,
-      guestHp: 120,
-      hostScore: 0,
-      guestScore: 0,
       ended: false
     };
     this.pitch = 0;
@@ -647,10 +657,10 @@ export class Mission3D {
       position: new THREE.Vector3(0, 330, 0),
       velocity: new THREE.Vector3(0, 0, -120),
       quaternion: new THREE.Quaternion(),
-      speed: 132,
-      hp: 120,
-      maxHp: 120,
-      radius: 8,
+      speed: this.flightSpeed,
+      hp: this.maxHp,
+      maxHp: this.maxHp,
+      radius: this.plane.loadout?.radius || 8,
       alive: true,
       invuln: 0
     };
@@ -660,30 +670,44 @@ export class Mission3D {
 
   initNetworkRemote() {
     if (!this.network) return;
-    const profile = this.opponentProfile;
-    const remotePlane = getPlane(profile.plane);
-    const remoteSkin = getSkin(profile.skin);
-    const model = buildFighter(remotePlane.id, remoteSkin.palette, this.isPvp);
-    this.remoteGroup = new THREE.Group();
-    this.remoteGroup.add(model.group);
-    this.remoteGroup.visible = false;
-    this.scene.add(this.remoteGroup);
-    this.remoteObject = {
-      group: this.remoteGroup,
-      model: model.group,
-      flames: model.flames,
-      position: this.remoteGroup.position,
-      quaternion: this.remoteGroup.quaternion,
-      hp: 120,
-      maxHp: 120,
-      radius: 8,
-      name: profile.name,
-      networkTarget: this.isPvp,
-      isPvpTarget: this.isPvp,
-      alive: false,
-      damageFlash: 0,
-      bank: 0
-    };
+    const profiles = this.networkPlayers.length
+      ? this.networkPlayers.filter((player) => Number(player.slot) !== this.selfSlot)
+      : [{ ...this.opponentProfile, slot: this.selfSlot === 0 ? 1 : 0 }];
+    for (const profile of profiles) {
+      const slot = Number(profile.slot);
+      if (this.remotePlayers.has(slot)) continue;
+      const remotePlane = getPlane(profile.plane);
+      const remoteSkin = getSkin(profile.skin);
+      const model = buildFighter(remotePlane.id, remoteSkin.palette, this.isPvp);
+      const group = new THREE.Group();
+      group.add(model.group);
+      group.visible = false;
+      this.scene.add(group);
+      const remote = {
+        group,
+        model: model.group,
+        flames: model.flames,
+        position: group.position,
+        quaternion: group.quaternion,
+        targetPosition: new THREE.Vector3(0, 330, -500),
+        targetQuaternion: new THREE.Quaternion(),
+        hp: Number(profile.hp) || Number(remotePlane.loadout?.hp) || 120,
+        maxHp: Number(profile.maxHp) || Number(remotePlane.loadout?.hp) || 120,
+        radius: remotePlane.loadout?.radius || 8,
+        name: profile.name || 'PILOT',
+        slot,
+        planeId: remotePlane.id,
+        networkTarget: this.isPvp,
+        isPvpTarget: this.isPvp,
+        isNetworkPlayer: true,
+        alive: profile.alive !== false,
+        dead: profile.alive === false,
+        damageFlash: 0,
+        bank: 0
+      };
+      this.remotePlayers.set(slot, remote);
+      this.enemies.push(remote);
+    }
   }
 
   addNetworkFx(fx) {
@@ -694,41 +718,69 @@ export class Mission3D {
   }
 
   setRemotePlayerState(state) {
-    if (!this.remoteGroup || !state) return;
-    this.remoteTargetPosition.set(
+    const slot = Number(state?.slot);
+    const remote = this.remotePlayers.get(slot);
+    if (!remote || remote.dead) return;
+    remote.targetPosition.set(
       Number(state.x) || 0,
       Number(state.y) || 0,
       Number(state.z) || 0
     );
-    this.remoteTargetQuaternion.set(
+    remote.targetQuaternion.set(
       Number(state.qx) || 0,
       Number(state.qy) || 0,
       Number(state.qz) || 0,
       Number.isFinite(Number(state.qw)) ? Number(state.qw) : 1
     ).normalize();
-    this.remoteGroup.visible = true;
-    if (this.remoteObject && this.isPvp) this.remoteObject.alive = true;
+    remote.group.visible = true;
+    remote.hasState = true;
+    if (this.isPvp) remote.alive = true;
   }
 
   updateRemoteVisual(dt) {
-    if (!this.remoteGroup) return;
     const smooth = 1 - Math.exp(-13 * dt);
-    this.remoteGroup.position.lerp(this.remoteTargetPosition, smooth);
-    this.remoteGroup.quaternion.slerp(this.remoteTargetQuaternion, smooth);
-    for (const flame of this.remoteObject?.flames || []) {
-      flame.scale.set(1, 0.78 + Math.sin(this.elapsed * 25) * 0.1, 1);
-    }
-    if (this.remoteObject) {
-      if (this.isPvp) {
-        this.remoteObject.hp = this.isNetworkHost ? this.pvpState.guestHp : this.pvpState.hostHp;
+    for (const remote of this.remotePlayers.values()) {
+      if (remote.dead) {
+        remote.group.visible = false;
+        continue;
       }
-      this.remoteObject.damageFlash = Math.max(0, this.remoteObject.damageFlash - dt * 4);
+      remote.group.position.lerp(remote.targetPosition, smooth);
+      remote.group.quaternion.slerp(remote.targetQuaternion, smooth);
+      for (const flame of remote.flames || []) {
+        flame.scale.set(1, 0.78 + Math.sin(this.elapsed * 25 + remote.slot) * 0.1, 1);
+      }
+      remote.damageFlash = Math.max(0, remote.damageFlash - dt * 4);
+    }
+  }
+
+  aliveRemoteCount() {
+    let count = 0;
+    for (const remote of this.remotePlayers.values()) {
+      if (!remote.dead) count += 1;
+    }
+    return count;
+  }
+
+  removeNetworkPlayer(slot) {
+    const remote = this.remotePlayers.get(Number(slot));
+    if (!remote) return;
+    remote.dead = true;
+    remote.alive = false;
+    remote.group.visible = false;
+    this.scene.remove(remote.group);
+    this.disposeGroup(remote.group);
+    this.enemies = this.enemies.filter((enemy) => enemy !== remote);
+    if (this.lockTarget === remote) {
+      this.lockTarget = null;
+      this.lockProgress = 0;
+      this.locked = false;
     }
   }
 
   emitNetworkState() {
     if (!this.network) return;
     this.callbacks.onNetworkState?.({
+      slot: this.selfSlot,
       x: this.player.position.x,
       y: this.player.position.y,
       z: this.player.position.z,
@@ -741,75 +793,40 @@ export class Mission3D {
   }
 
   emitNetworkSnapshot() {
-    if (!this.isNetworkHost) return;
+    if (!this.isNetworkHost || this.isPvp) return;
     const snapshot = {
       mode: this.networkMode,
       timeLeft: this.timeLeft,
       kills: this.kills,
       required: this.requiredKills,
       score: this.score,
-      host: {
-        x: this.player.position.x,
-        y: this.player.position.y,
-        z: this.player.position.z,
-        qx: this.player.quaternion.x,
-        qy: this.player.quaternion.y,
-        qz: this.player.quaternion.z,
-        qw: this.player.quaternion.w
-      },
-      pvp: this.isPvp
-        ? {
-            hostHp: this.player.hp,
-            guestHp: this.pvpState.guestHp,
-            maxHp: this.player.maxHp
-          }
-        : null,
-      enemies: this.isPvp
-        ? []
-        : this.enemies
-            .filter((enemy) => enemy.alive && enemy !== this.remoteObject)
-            .map((enemy) => ({
-              id: enemy.networkId,
-              planeId: enemy.planeId || 'falcon',
-              variant: enemy.variant || 0,
-              name: enemy.name,
-              x: enemy.position.x,
-              y: enemy.position.y,
-              z: enemy.position.z,
-              qx: enemy.quaternion.x,
-              qy: enemy.quaternion.y,
-              qz: enemy.quaternion.z,
-              qw: enemy.quaternion.w,
-              hp: enemy.hp,
-              maxHp: enemy.maxHp
-            }))
+      enemies: this.enemies
+        .filter((enemy) => enemy.alive && !enemy.isNetworkPlayer)
+        .map((enemy) => ({
+          id: enemy.networkId,
+          planeId: enemy.planeId || 'falcon',
+          variant: enemy.variant || 0,
+          name: enemy.name,
+          x: enemy.position.x,
+          y: enemy.position.y,
+          z: enemy.position.z,
+          qx: enemy.quaternion.x,
+          qy: enemy.quaternion.y,
+          qz: enemy.quaternion.z,
+          qw: enemy.quaternion.w,
+          hp: enemy.hp,
+          maxHp: enemy.maxHp
+        }))
     };
     this.callbacks.onNetworkSnapshot?.(snapshot);
   }
 
   applyNetworkSnapshot(snapshot) {
-    if (!this.isNetworkGuest || !snapshot) return;
-    if (snapshot.host) this.setRemotePlayerState(snapshot.host);
+    if (!this.isNetworkGuest || !snapshot || this.isPvp) return;
     if (typeof snapshot.timeLeft === 'number') this.timeLeft = snapshot.timeLeft;
     if (typeof snapshot.kills === 'number') this.kills = snapshot.kills;
     if (typeof snapshot.score === 'number') this.score = snapshot.score;
-    if (this.isPvp && snapshot.pvp) {
-      this.pvpState.hostHp = Number(snapshot.pvp.hostHp) || 0;
-      this.pvpState.guestHp = Number(snapshot.pvp.guestHp) || 0;
-      if (this.remoteObject) this.remoteObject.hp = this.pvpState.hostHp;
-      const newHp = Math.max(0, this.pvpState.guestHp);
-      if (newHp < this.player.hp) {
-        this.player.damageFlash = 1;
-        this.cameraShake = Math.max(this.cameraShake, 7);
-        this.callbacks.onEvent?.({ type: 'damage', source: 'PVP' });
-      }
-      this.player.hp = newHp;
-      this.player.alive = newHp > 0;
-    } else if (this.isPvp && !snapshot.pvp) {
-      this.timeLeft = snapshot.timeLeft || this.timeLeft;
-    } else {
-      this.applyNetworkEnemies(snapshot.enemies || []);
-    }
+    this.applyNetworkEnemies(snapshot.enemies || []);
     this.emitHud(true);
   }
 
@@ -872,7 +889,7 @@ export class Mission3D {
   applyNetworkEnemies(enemiesData) {
     const remaining = new Set(enemiesData.map((item) => item.id));
     for (const enemy of [...this.enemies]) {
-      if (enemy === this.remoteObject || !enemy.isSnapshotEnemy) continue;
+      if (enemy.isNetworkPlayer || !enemy.isSnapshotEnemy) continue;
       if (remaining.has(enemy.networkId)) continue;
       this.spawnExplosion(enemy.position.clone(), 1.8);
       this.scene.remove(enemy.group);
@@ -926,32 +943,70 @@ export class Mission3D {
     if (enemy.hp <= 0) this.killEnemy(enemy);
   }
 
-  applyNetworkPvpHit(damage) {
-    if (!this.isNetworkHost || !this.isPvp || this.pvpState.ended) return;
-    this.player.hp = Math.max(0, this.player.hp - damage);
-    this.player.damageFlash = 1;
-    this.cameraShake = Math.max(this.cameraShake, 8);
-    this.callbacks.onEvent?.({ type: 'damage', source: 'PVP' });
-    if (this.player.hp <= 0) this.endPvp(false);
+  applyNetworkPvpHit(payload) {
+    if (!this.isPvp || this.pvpState.ended) return;
+    const targetSlot = Number(payload?.targetSlot);
+    const hp = Math.max(0, Number(payload?.hp) || 0);
+    if (targetSlot === this.selfSlot) {
+      if (hp < this.player.hp) {
+        this.player.damageFlash = 1;
+        this.cameraShake = Math.max(this.cameraShake, 8);
+        this.callbacks.onEvent?.({ type: 'damage', source: 'PVP' });
+      }
+      this.player.hp = hp;
+      this.player.alive = hp > 0;
+      this.emitHud(true);
+      return;
+    }
+    const remote = this.remotePlayers.get(targetSlot);
+    if (!remote || remote.dead) return;
+    remote.hp = hp;
+    remote.damageFlash = 1;
   }
 
-  applyLocalPvpHit(damage) {
-    if (!this.isPvp || this.pvpState.ended) return;
-    if (this.isNetworkHost) {
-      this.pvpState.guestHp = Math.max(0, this.pvpState.guestHp - damage);
-      if (this.remoteObject) this.remoteObject.hp = this.pvpState.guestHp;
-      if (this.pvpState.guestHp <= 0) this.endPvp(true);
-    } else {
-      this.callbacks.onNetworkPvpHit?.({ damage });
+  applyNetworkPvPDeath(payload) {
+    if (!this.isPvp) return;
+    const targetSlot = Number(payload?.targetSlot);
+    const bySlot = Number(payload?.bySlot);
+    if (targetSlot === this.selfSlot) {
+      this.endPvp(false);
+      return;
+    }
+    const remote = this.remotePlayers.get(targetSlot);
+    if (!remote || remote.dead) return;
+    remote.dead = true;
+    remote.alive = false;
+    remote.group.visible = false;
+    this.spawnExplosion(remote.position.clone(), 2.2);
+    this.enemies = this.enemies.filter((enemy) => enemy !== remote);
+    if (this.lockTarget === remote) {
+      this.lockTarget = null;
+      this.lockProgress = 0;
+      this.locked = false;
+    }
+    if (bySlot === this.selfSlot) {
+      this.kills += 1;
+      const gained = 1500;
+      this.score += gained;
+      this.callbacks.onEvent?.({ type: 'kill', text: `${remote.name} 击落`, score: gained });
+    }
+    if (this.aliveRemoteCount() === 0 && this.player.alive) {
+      this.endPvp(true);
     }
   }
 
-  endPvp(hostWon) {
+  applyLocalPvpHit(target, damage) {
+    if (!this.isPvp || this.pvpState.ended || !target?.isPvpTarget) return;
+    const amount = Math.max(1, Math.round(damage));
+    target.hp = Math.max(0, target.hp - amount);
+    target.damageFlash = 1;
+    this.callbacks.onNetworkPvpHit?.({ targetSlot: target.slot, damage: amount });
+  }
+
+  endPvp(success) {
     if (this.pvpState.ended) return;
     this.pvpState.ended = true;
-    if (this.isNetworkHost) {
-      this.endMission(hostWon, 'pvp');
-    }
+    this.endMission(success, 'pvp');
   }
 
   get isCoopMode() {
@@ -1033,13 +1088,14 @@ export class Mission3D {
     this.missilesLeft = 8;
     this.flaresLeft = 5;
     this.boost = 100;
-    this.player.hp = 120;
-    this.player.maxHp = 120;
+    this.cannonAmmo = this.cannonAmmoMax;
+    this.player.hp = this.maxHp;
+    this.player.maxHp = this.maxHp;
     this.player.alive = true;
     this.player.invuln = 0;
     this.player.position.set(0, 330, 0);
-    this.player.velocity.set(0, 0, -132);
-    this.player.speed = 132;
+    this.player.velocity.set(0, 0, -this.flightSpeed);
+    this.player.speed = this.flightSpeed;
     this.player.quaternion.identity();
     this.playerModel.visible = true;
     this.groundWarned = false;
@@ -1059,12 +1115,22 @@ export class Mission3D {
     this.stickTarget.x = 0;
     this.stickTarget.y = 0;
     if (this.isPvp) {
-      const hostSide = this.isNetworkHost;
-      this.player.position.set(0, 330, hostSide ? 760 : -760);
-      this.player.velocity.set(0, 0, hostSide ? -132 : 132);
-      this.yaw = hostSide ? 0 : Math.PI;
-      this.remoteTargetPosition.set(0, 330, hostSide ? -760 : 760);
-      this.remoteTargetQuaternion.setFromAxisAngle(UP, hostSide ? Math.PI : 0);
+      const total = Math.max(2, this.networkPlayers.length || this.remotePlayers.size + 1);
+      const radius = 820;
+      const selfAngle = (this.selfSlot / total) * TAU;
+      this.player.position.set(Math.sin(selfAngle) * radius, 330, -Math.cos(selfAngle) * radius);
+      const spawnDir = new THREE.Vector3(-this.player.position.x, 0, -this.player.position.z).normalize();
+      this.player.velocity.copy(spawnDir).multiplyScalar(this.flightSpeed);
+      this.yaw = Math.PI - selfAngle;
+      for (const remote of this.remotePlayers.values()) {
+        const angle = (remote.slot / total) * TAU;
+        remote.targetPosition.set(Math.sin(angle) * radius, 330, -Math.cos(angle) * radius);
+        remote.group.position.copy(remote.targetPosition);
+        const dir = new THREE.Vector3(-remote.targetPosition.x, 0, -remote.targetPosition.z).normalize();
+        const q = quaternionFromForward(dir);
+        remote.targetQuaternion.copy(q);
+        remote.group.quaternion.copy(q);
+      }
     }
     this.lockTarget = null;
     this.lockProgress = 0;
@@ -1078,14 +1144,19 @@ export class Mission3D {
     this.missileHits = 0;
     this.networkStateClock = 0;
     this.snapshotClock = 0;
-    this.pvpState = { hostHp: 120, guestHp: 120, hostScore: 0, guestScore: 0, ended: false };
+    this.ammoEmptyWarned = false;
+    this.pvpState = { ended: false };
     this.clearEntities();
     this.enemies = [];
     if (this.isPvp) {
-      this.remoteObject.alive = this.remoteGroup.visible;
-      this.remoteObject.hp = 120;
-      this.remoteObject.maxHp = 120;
-      if (!this.enemies.includes(this.remoteObject)) this.enemies.push(this.remoteObject);
+      for (const remote of this.remotePlayers.values()) {
+        remote.dead = false;
+        remote.alive = true;
+        remote.hp = remote.maxHp;
+        remote.damageFlash = 0;
+        remote.group.visible = true;
+        if (!this.enemies.includes(remote)) this.enemies.push(remote);
+      }
     } else if (!this.isNetworkGuest) {
       this.spawnInitialEnemies();
     }
@@ -1144,7 +1215,7 @@ export class Mission3D {
 
   clearEntities() {
     for (const enemy of this.enemies) {
-      if (enemy === this.remoteObject) continue;
+      if (enemy.isNetworkPlayer) continue;
       this.scene.remove(enemy.group);
       this.disposeGroup(enemy.group);
     }
@@ -1282,9 +1353,9 @@ export class Mission3D {
     if (this.keys.has('KeyQ')) manualRoll -= 1;
     if (this.keys.has('KeyE')) manualRoll += 1;
 
-    this.yawRate = -yawInput * 1.38;
-    this.pitchRate = pitchInput * 1.52;
-    this.rollRate = damp(this.rollRate, -yawInput * 0.86 + manualRoll * 0.7, 10, dt);
+    this.yawRate = -yawInput * 1.38 * this.agilityScale;
+    this.pitchRate = pitchInput * 1.52 * this.agilityScale;
+    this.rollRate = damp(this.rollRate, (-yawInput * 0.86 + manualRoll * 0.7) * this.agilityScale, 10, dt);
 
     this.yaw += this.yawRate * dt;
     this.pitch = clamp(this.pitch + this.pitchRate * dt, -1.32, 1.32);
@@ -1304,7 +1375,7 @@ export class Mission3D {
       this.boost = Math.min(100, this.boost + dt * 14);
       this.boostActive = false;
     }
-    const targetSpeed = 136 + (this.boostActive ? 120 : 0);
+    const targetSpeed = this.flightSpeed + (this.boostActive ? this.boostSpeed : 0);
     player.speed = damp(player.speed, targetSpeed, this.boostActive ? 2.8 : 1.8, dt);
     const targetVelocity = forward.multiplyScalar(player.speed);
     player.velocity.lerp(targetVelocity, 1 - Math.exp(-2.8 * dt));
@@ -1350,9 +1421,13 @@ export class Mission3D {
 
     const firing = this.mobileCannon || this.keys.has('Space');
     if (firing) {
-      if (this.cannonTimer <= 0) {
-        this.cannonTimer = 0.095;
+      if (this.cannonTimer <= 0 && this.cannonAmmo > 0) {
+        this.cannonTimer = this.cannonDelay;
         this.fireCannon();
+      } else if (this.cannonAmmo <= 0 && !this.ammoEmptyWarned) {
+        this.ammoEmptyWarned = true;
+        audio.error();
+        this.message('GUN EMPTY', '机炮弹药耗尽 · 使用导弹', 'warning');
       }
     }
 
@@ -1394,7 +1469,7 @@ export class Mission3D {
     const player = this.player;
     const forward = this.getPlayerForward();
     for (const enemy of this.enemies) {
-      if (!enemy.alive || enemy.networkTarget) continue;
+      if (!enemy.alive || enemy.networkTarget || enemy.isNetworkPlayer) continue;
       enemy.damageFlash = Math.max(0, enemy.damageFlash - dt * 4);
       if (enemy.hitGlow) enemy.hitGlow.material.opacity = enemy.damageFlash * 0.55;
       const toPlayer = player.position.clone().sub(enemy.position);
@@ -1520,7 +1595,8 @@ export class Mission3D {
   }
 
   fireCannon() {
-    if (!this.player.alive) return;
+    if (!this.player.alive || this.cannonAmmo <= 0) return;
+    this.cannonAmmo -= 1;
     this.shotsFired += 1;
     const start = this.player.position.clone()
       .add(new THREE.Vector3(rand(-0.8, 0.8), -0.15, 2))
@@ -1564,13 +1640,14 @@ export class Mission3D {
       this.hitMarkerTime = this.elapsed;
       this.spawnSparks(end, '#ffb168', 5);
       this.callbacks.onEvent?.({ type: 'hitmarker' });
+      const damage = this.cannonDamage;
       if (hitEnemy.isPvpTarget) {
-        this.applyLocalPvpHit(9);
+        this.applyLocalPvpHit(hitEnemy, damage * 0.8);
       } else if (this.isNetworkGuest && this.isCoopMode) {
-        hitEnemy.hp = Math.max(0, hitEnemy.hp - 9);
-        this.callbacks.onNetworkEnemyHit?.({ id: hitEnemy.networkId, damage: 9 });
+        hitEnemy.hp = Math.max(0, hitEnemy.hp - damage);
+        this.callbacks.onNetworkEnemyHit?.({ id: hitEnemy.networkId, damage });
       } else {
-        hitEnemy.hp -= 9;
+        hitEnemy.hp -= damage;
         if (hitEnemy.hp <= 0) this.killEnemy(hitEnemy);
       }
     }
@@ -1800,7 +1877,7 @@ export class Mission3D {
         if (distance < 24) {
           this.missileHits += 1;
           if (missile.target.isPvpTarget) {
-            this.applyLocalPvpHit(70);
+            this.applyLocalPvpHit(missile.target, 58);
           } else if (this.isNetworkGuest && this.isCoopMode) {
             missile.target.hp = 0;
             this.callbacks.onNetworkEnemyHit?.({ id: missile.target.networkId, damage: 999 });
@@ -2226,7 +2303,7 @@ export class Mission3D {
     this.stickTarget.y = 0;
     this.dragging = false;
     if (this.isPvp) {
-      this.message(success ? 'DOGFIGHT WON' : 'DOGFIGHT LOST', success ? '对手已被击落' : '你被对手击落', success ? 'success' : 'danger');
+      this.message(success ? 'DOGFIGHT WON' : 'DOGFIGHT LOST', success ? '你赢下了这场混战' : '你被击落了', success ? 'success' : 'danger');
     } else if (success) {
       this.message('MISSION COMPLETE', '目标全部击落', 'success');
     } else {
@@ -2267,7 +2344,8 @@ export class Mission3D {
       skin: this.skinId,
       pvp: this.isPvp,
       pvpHostHp: Math.max(0, Math.round(this.player.hp)),
-      pvpGuestHp: Math.max(0, Math.round(this.pvpState.guestHp)),
+      pvpGuestHp: this.aliveRemoteCount(),
+      pvpKills: this.kills,
       network: Boolean(this.network),
       networkMode: this.networkMode,
       networkRole: this.networkRole
@@ -2365,11 +2443,14 @@ export class Mission3D {
       });
     };
     for (const enemy of this.enemies) {
-      if (!enemy.alive) continue;
+      if (!enemy.alive || (enemy.isNetworkPlayer && !this.isPvp)) continue;
       pushContact(enemy.position, 'enemy', enemy === this.lockTarget);
     }
-    if (this.remoteGroup?.visible && !this.isPvp) {
-      pushContact(this.remoteGroup.position, 'ally');
+    if (!this.isPvp) {
+      for (const remote of this.remotePlayers.values()) {
+        if (remote.dead || !remote.group.visible) continue;
+        pushContact(remote.position, 'ally');
+      }
     }
     this._hud.contacts = contacts;
   }
@@ -2391,6 +2472,8 @@ export class Mission3D {
     this._hud.boost = this.boost;
     this._hud.missiles = this.missilesLeft;
     this._hud.flares = this.flaresLeft;
+    this._hud.cannonAmmo = this.cannonAmmo;
+    this._hud.cannonAmmoMax = this.cannonAmmoMax;
     this._hud.score = this.score;
     this._hud.cloud = this.cloudImmersion;
     this._hud.networkMode = this.networkMode;
@@ -2402,11 +2485,17 @@ export class Mission3D {
           allyName: this.opponentProfile?.name || 'WINGMAN'
         }
       : null;
+    const aliveFoes = this.aliveRemoteCount();
+    const lastFoe = aliveFoes === 1
+      ? [...this.remotePlayers.values()].find((remote) => !remote.dead)
+      : null;
     this._hud.pvp = this.isPvp
       ? {
           selfHp: Math.max(0, Math.round(this.player.hp)),
-          foeHp: Math.max(0, Math.round(this.isNetworkHost ? this.pvpState.guestHp : this.pvpState.hostHp)),
-          foeName: this.opponentProfile?.name || 'OPPONENT',
+          foeHp: lastFoe ? Math.max(0, Math.round(lastFoe.hp)) : aliveFoes,
+          foeName: lastFoe ? lastFoe.name : '存活对手',
+          kills: this.kills,
+          aliveFoes,
           ended: this.pvpState.ended
         }
       : null;
@@ -2431,7 +2520,7 @@ export class Mission3D {
     this.timeLeft = Math.max(0, this.timeLimit - this.elapsed);
     if (this.timeLeft <= 0) {
       if (this.isPvp) {
-        this.endPvp(this.player.hp >= this.pvpState.guestHp);
+        this.endPvp(this.player.alive);
       } else {
         this.endMission(false, 'timeout');
       }
@@ -2440,15 +2529,15 @@ export class Mission3D {
 
   update(dt) {
     if (this.state === 'playing' && !this.paused) {
-      if (!this.isNetworkGuest) {
+      if (!this.isNetworkGuest || this.isPvp) {
         this.updateMissionState(dt);
         if (this.state !== 'playing') return;
       }
       this.updatePlayer(dt);
       this.updateRemoteVisual(dt);
-      if (this.isNetworkGuest) {
-        if (this.isCoopMode) this.updateNetworkEnemies(dt);
-      } else {
+      if (this.isNetworkGuest && this.isCoopMode) {
+        this.updateNetworkEnemies(dt);
+      } else if (!this.isPvp) {
         this.updateEnemies(dt);
       }
       this.updatePlayerMissiles(dt);

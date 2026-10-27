@@ -2015,3 +2015,81 @@
     bottom: 18px;
   }
 }
+
+/* ---------- READABILITY & RIGHT-SIDE KEY HINTS ---------- */
+
+.mission-id span { font-size: 0.58rem; }
+.mission-id b { font-size: 0.86rem; }
+.mission-clock span { font-size: 0.52rem; color: var(--muted); }
+.mission-killcount > span { font-size: 0.54rem; color: var(--muted); }
+.flight-row > span { font-size: 0.54rem; color: var(--muted); }
+.flight-row small { font-size: 0.48rem; }
+.g-limit span { font-size: 0.5rem; }
+.mission-health-head span { font-size: 0.52rem; color: var(--muted); }
+.mission-health-head b { font-size: 0.94rem; }
+.mission-health-sub { font-size: 0.5rem; }
+.radar-caption { font-size: 0.52rem; }
+.radar-caption b { font-size: 0.5rem; }
+.m-weapon b { font-size: 0.82rem; }
+.m-weapon small { font-size: 0.46rem; }
+.m-weapon kbd { font-size: 0.46rem; }
+.mission-lock-readout > span { font-size: 0.58rem; }
+.mission-lock-readout small { font-size: 0.5rem; }
+.mission-control-hint { font-size: 0.52rem; color: rgba(190, 220, 235, 0.68); }
+.mission-radar-wrap { opacity: 0.96; }
+
+#mission-cannon-ammo.is-empty {
+  color: var(--danger);
+  text-shadow: 0 0 9px rgba(255, 92, 114, 0.55);
+}
+
+.mission-keyhints {
+  position: absolute;
+  right: clamp(20px, 2.4vw, 40px);
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 174px;
+  padding: 13px 14px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(138, 224, 255, 0.24);
+  background: linear-gradient(145deg, rgba(16, 39, 60, 0.62), rgba(5, 17, 29, 0.5));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(7px);
+  pointer-events: none;
+}
+
+.keyhints-title {
+  margin-bottom: 3px;
+  color: var(--cyan);
+  font-size: 0.54rem;
+  letter-spacing: 0.2em;
+}
+
+.keyhint {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(224, 244, 255, 0.86);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+}
+
+.keyhint kbd {
+  flex: 0 0 86px;
+  padding: 3px 5px;
+  border: 1px solid rgba(138, 224, 255, 0.28);
+  border-radius: 3px;
+  background: rgba(87, 229, 255, 0.075);
+  color: #dff9ff;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 0.52rem;
+}
+
+@media (max-width: 1120px), (pointer: coarse) {
+  .mission-keyhints {
+    display: none;
+  }
+}

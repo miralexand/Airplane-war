@@ -265,6 +265,7 @@ function cacheDom() {
   dom.missionLockHint = $('#mission-lock-hint');
   dom.missionMissiles = $('#mission-missiles');
   dom.missionFlares = $('#mission-flares');
+  dom.missionCannonAmmo = $('#mission-cannon-ammo');
   dom.missionBoost = $('#mission-boost');
   dom.missionKillfeed = $('#mission-killfeed');
   dom.missionMessage = $('#mission-message');
@@ -325,8 +326,8 @@ function cacheDom() {
   dom.air3dWaitingTitle = $('#air3d-waiting-title');
   dom.air3dWaitingEyebrow = $('#air3d-waiting-eyebrow');
   dom.air3dWaitingMode = $('#air3d-waiting-mode');
-  dom.air3dHostName = $('#air3d-host-name');
-  dom.air3dGuestSlot = $('#air3d-guest-slot');
+  dom.air3dSlotList = $('#air3d-slot-list');
+  dom.air3dStartBtn = $('#air3d-start-btn');
   dom.air3dCopyBtn = $('#air3d-copy-btn');
   dom.air3dCancelBtn = $('#air3d-cancel-btn');
   dom.air3dModeButtons = $$('[data-air3d-mode]');
@@ -468,6 +469,7 @@ function bindEvents() {
     dom.air3dRoomCode.value = dom.air3dRoomCode.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
   });
   dom.air3dCancelBtn.addEventListener('click', cancelAir3DRoom);
+  dom.air3dStartBtn?.addEventListener('click', startAir3DRoom);
   dom.air3dCopyBtn.addEventListener('click', copyAir3DInvite);
 
   dom.planeList.addEventListener('click', (event) => {
@@ -638,10 +640,9 @@ function updateAir3DLobbyMode() {
   });
   dom.air3dCreateBtn.querySelector('span').textContent = pvp ? '创建 3D 对决房间' : '创建编队房间';
   dom.air3dCreateBtn.querySelector('small').textContent = pvp ? 'PVP HOST' : 'CO-OP HOST';
-  dom.air3dWaitingMode.textContent = pvp ? 'PVP · 3D 王牌对决' : 'CO-OP · 双机编队';
-  dom.air3dWaitingTitle.textContent = pvp ? '等待对手接入' : '等待僚机接入';
-  dom.air3dWaitingEyebrow.textContent = pvp ? 'WAITING FOR OPPONENT' : 'WAITING FOR WINGMAN';
-  dom.air3dGuestSlot.querySelector('small').textContent = pvp ? '挑战者' : '僚机';
+  dom.air3dWaitingMode.textContent = pvp ? 'PVP · 5 人混战' : 'CO-OP · 多机编队';
+  dom.air3dWaitingTitle.textContent = pvp ? '等待飞行员接入' : '等待僚机接入';
+  dom.air3dWaitingEyebrow.textContent = pvp ? 'WAITING FOR PILOTS' : 'WAITING FOR WINGMEN';
   const plane = getPlane(state.selectedPlane);
   const skin = getSkin(state.selectedSkin);
   dom.air3dPlaneName.textContent = plane.name;
@@ -650,25 +651,54 @@ function updateAir3DLobbyMode() {
 
 function renderAir3DLobby() {
   if (state.air3d.waiting && state.air3d.code) {
+    const pvp = state.air3d.mode === 'pvp';
     dom.air3dLobby.hidden = true;
     dom.air3dWaiting.hidden = false;
     dom.air3dWaitingCode.textContent = state.air3d.code;
-    dom.air3dWaitingMode.textContent = state.air3d.mode === 'pvp' ? 'PVP · 3D 王牌对决' : 'CO-OP · 双机编队';
-    dom.air3dHostName.textContent = state.user?.username || state.guestName;
-    const guest = state.air3d.room?.players?.find((player) => player.slot !== state.air3d.slot);
-    if (guest) {
-      dom.air3dGuestSlot.classList.add('filled');
-      dom.air3dGuestSlot.querySelector('b').textContent = guest.name;
-      dom.air3dGuestSlot.querySelector('small').textContent = getPlane(guest.plane).name;
-    } else {
-      dom.air3dGuestSlot.classList.remove('filled');
-      dom.air3dGuestSlot.querySelector('b').textContent = '等待接入...';
-      dom.air3dGuestSlot.querySelector('small').textContent = state.air3d.mode === 'pvp' ? '挑战者' : '僚机';
+    dom.air3dWaitingMode.textContent = pvp
+      ? `PVP · 5 人混战 · ${state.air3d.room?.players?.length || 1}/${state.air3d.room?.maxPlayers || 5}`
+      : `CO-OP · 多机编队 · ${state.air3d.room?.players?.length || 1}/${state.air3d.room?.maxPlayers || 5}`;
+    const players = [...(state.air3d.room?.players || [])].sort((a, b) => a.slot - b.slot);
+    const maxPlayers = state.air3d.room?.maxPlayers || 5;
+    if (dom.air3dSlotList) {
+      dom.air3dSlotList.innerHTML = Array.from({ length: maxPlayers }, (_, slot) => {
+        const player = players.find((entry) => entry.slot === slot);
+        const isSelf = slot === state.air3d.slot;
+        if (player) {
+          return `
+            <div class="wingman filled ${isSelf ? 'is-self' : ''}">
+              <span>${String(slot + 1).padStart(2, '0')}</span>
+              <b>${escapeHtml(player.name)}</b>
+              <small>${slot === 0 ? '房主' : escapeHtml(getPlane(player.plane).name)}</small>
+            </div>
+          `;
+        }
+        return `
+          <div class="wingman">
+            <span>${String(slot + 1).padStart(2, '0')}</span>
+            <b>等待接入...</b>
+            <small>${slot === 0 ? '房主' : pvp ? '挑战者' : '僚机'}</small>
+          </div>
+        `;
+      }).join('');
+    }
+    const isHost = state.air3d.slot === 0;
+    if (dom.air3dStartBtn) {
+      dom.air3dStartBtn.hidden = !isHost;
+      dom.air3dStartBtn.disabled = players.length < 2;
+      dom.air3dStartBtn.querySelector('span').textContent = players.length < 2 ? '等待飞行员' : '开始战斗';
     }
   } else {
     dom.air3dLobby.hidden = false;
     dom.air3dWaiting.hidden = true;
   }
+}
+
+function startAir3DRoom() {
+  if (!state.socket) return;
+  state.socket.emit('air3d:start', {}, (result) => {
+    if (result?.ok === false) toast(result.error || '暂时无法开始战斗。', 'error');
+  });
 }
 
 async function loadAir3DNetwork() {
@@ -702,7 +732,7 @@ function createAir3DRoom() {
     state.air3d.room = result.room;
     state.air3d.waiting = true;
     renderAir3DLobby();
-    toast(result.mode === 'pvp' ? `3D 对决房间 ${result.code} 已建立。` : `编队房间 ${result.code} 已建立。`);
+    toast(result.mode === 'pvp' ? `3D 对决房间 ${result.code} 已建立（最多 5 人）。` : `编队房间 ${result.code} 已建立（最多 5 人）。`);
   });
 }
 
@@ -722,8 +752,9 @@ function joinAir3DRoom(code) {
     state.air3d.mode = result.mode;
     state.air3d.slot = result.slot;
     state.air3d.room = result.room;
-    state.air3d.waiting = false;
-    toast('已接入 3D 战场，正在同步数据链...');
+    state.air3d.waiting = true;
+    renderAir3DLobby();
+    toast('已接入 3D 战场，等待房主开始战斗...');
   });
 }
 
@@ -820,6 +851,8 @@ function prepareAir3DMatch(payload) {
       network: {
         role: slot === 0 ? 'host' : 'guest',
         mode: payload.mode,
+        slot,
+        players: payload.players || [],
         opponent
       },
       callbacks: {
@@ -882,16 +915,23 @@ function handleAir3DMissionEnd(result) {
     handleMissionEnd(result);
     return;
   }
-  if (state.air3d.slot === 0 && !state.air3d.resultSent) {
+  if (state.air3d.slot === 0 && !state.air3d.resultSent && result.networkMode !== 'pvp') {
     state.air3d.resultSent = true;
-    const guestSuccess = result.networkMode === 'pvp' ? !result.success : result.success;
-    state.socket?.emit('air3d:end', { ...result, guestSuccess });
+    state.socket?.emit('air3d:end', { ...result, guestSuccess: result.success });
   }
   showAir3DResult(result, result.success);
 }
 
 function handleAir3DEndFromHost(payload) {
   if (!state.air3d.active) return;
+  if (payload?.serverResult) {
+    const mission = state.air3d.mission;
+    const won = Number(payload.winnerSlot) === state.air3d.slot;
+    if (mission && mission.state === 'playing') {
+      mission.endMission(won, 'pvp');
+    }
+    return;
+  }
   const guestResult = { ...payload, success: payload.guestSuccess ?? !payload.success };
   if (state.air3d.mission) {
     state.air3d.mission.state = 'ended';
@@ -923,18 +963,22 @@ function showAir3DResult(result, success) {
   dom.missionEndTitle.textContent = pvp ? (success ? '对决胜利' : '对决失利') : (success ? '编队任务完成' : '编队任务失败');
   dom.missionEndSubtitle.textContent = pvp
     ? (success ? '你赢下了这场 3D 王牌对决。' : '对手赢下了这次交锋。调整机体与战术再来。')
-    : (success ? '双机编队完成空域清理，敌方编队全灭。' : '编队任务失败。与僚机重新规划进攻路线。');
-  const pvpSelfHp = state.air3d.slot === 0 ? result.pvpHostHp ?? result.hp : result.pvpGuestHp ?? 0;
+    : (success ? '多机编队完成空域清理，敌方编队全灭。' : '编队任务失败。与僚机重新规划进攻路线。');
+  const pvpSelfHp = result.hp ?? 0;
+  const foeNames = (state.air3d.room?.players || [])
+    .filter((player) => player.slot !== state.air3d.slot)
+    .map((player) => player.name)
+    .join('、');
   dom.missionEndGrid.innerHTML = `
     <div class="mission-end-stat"><span>SCORE</span><b>${formatNumber(result.score)}</b></div>
-    <div class="mission-end-stat"><span>${pvp ? '结构值' : '击落'}</span><b>${pvp ? `${pvpSelfHp}%` : `${result.kills} / ${result.required || 6}`}</b></div>
+    <div class="mission-end-stat"><span>${pvp ? '剩余结构' : '击落'}</span><b>${pvp ? `${pvpSelfHp} HP` : `${result.kills} / ${result.required || 6}`}</b></div>
     <div class="mission-end-stat"><span>剩余时间</span><b>${formatTime(result.timeLeft)}</b></div>
     <div class="mission-end-stat"><span>命中率</span><b>${Math.round((result.accuracy || 0) * 100)}%</b></div>
   `;
   dom.missionEndExtra.innerHTML = `
     <span>${result.networkMode === 'pvp' ? '3D DOGFIGHT' : 'CO-OP SORTIE'}</span>
     <i></i>
-    <span>僚机/对手：${escapeHtml(state.air3d.room?.players?.find((player) => player.slot !== state.air3d.slot)?.name || '未知')}</span>
+    <span>${result.networkMode === 'pvp' ? '对手' : '僚机'}：${escapeHtml(foeNames || '未知')}</span>
   `;
   dom.missionEndActions.innerHTML = '';
   const lobby = makeActionButton('返回 3D 大厅', 'LAN LOBBY', true, () => {
@@ -1033,7 +1077,7 @@ function ownedSkins() {
 }
 
 function isPlaneOwned(id) {
-  return ownedPlanes().includes(id);
+  return FREE_PLANES.has(id) || ownedPlanes().includes(id);
 }
 
 function isSkinOwned(id) {
@@ -1752,6 +1796,23 @@ function initSocket() {
     prepareAir3DMatch(payload);
   });
 
+  socket.on('air3d:room', (payload) => {
+    if (!payload || state.air3d.active) return;
+    state.air3d.room = payload;
+    state.air3d.code = payload.code || state.air3d.code;
+    state.air3d.mode = payload.mode || state.air3d.mode;
+    if (state.air3d.waiting) renderAir3DLobby();
+  });
+
+  socket.on('air3d:playerleft', (payload) => {
+    if (!payload) return;
+    state.air3d.mission?.removeNetworkPlayer(payload.slot);
+    if (state.air3d.room?.players) {
+      state.air3d.room.players = state.air3d.room.players.filter((player) => player.slot !== payload.slot);
+    }
+    toast(payload.message || '一名飞行员已离开战场。', 'error', 2600);
+  });
+
   socket.on('air3d:go', () => {
     startAir3DMatch();
   });
@@ -1769,7 +1830,11 @@ function initSocket() {
   });
 
   socket.on('air3d:pvpHit', (payload) => {
-    state.air3d.mission?.applyNetworkPvpHit(Number(payload?.damage) || 0);
+    state.air3d.mission?.applyNetworkPvpHit(payload);
+  });
+
+  socket.on('air3d:pvpDeath', (payload) => {
+    state.air3d.mission?.applyNetworkPvPDeath(payload);
   });
 
   socket.on('air3d:fx', (payload) => {
@@ -2086,6 +2151,7 @@ function openMission3D({ autoStart = false } = {}) {
   dom.missionMissiles.textContent = '06';
   dom.missionFlares.textContent = '03';
   dom.missionBoost.textContent = '100';
+  if (dom.missionCannonAmmo) dom.missionCannonAmmo.textContent = String(plane.loadout?.ammo || 360);
   dom.missionLockStatus.textContent = 'NO TARGET';
   dom.missionLockFill.style.width = '0%';
   dom.missionLockHint.textContent = '将目标保持在准星内锁定，或先发射导弹再制导';
@@ -2291,6 +2357,11 @@ function updateMissionHud(snapshot) {
   dom.missionMissiles.textContent = String(snapshot.missiles).padStart(2, '0');
   dom.missionFlares.textContent = String(snapshot.flares).padStart(2, '0');
   dom.missionBoost.textContent = String(Math.round(snapshot.boost)).padStart(3, '0');
+  if (dom.missionCannonAmmo) {
+    const ammo = Math.max(0, Number(snapshot.cannonAmmo) || 0);
+    dom.missionCannonAmmo.textContent = String(ammo).padStart(3, '0');
+    dom.missionCannonAmmo.classList.toggle('is-empty', ammo <= 0);
+  }
 
   const lock = snapshot.lock;
   const inReticle = Boolean(lock?.screen?.inReticle);
@@ -2350,7 +2421,8 @@ function updateMissionHud(snapshot) {
   dom.missionKillcountWrap.style.display = pvp ? 'none' : '';
   if (pvp) {
     dom.missionPvpSelfName.textContent = state.user?.username || state.guestName;
-    dom.missionPvpFoeName.textContent = snapshot.pvp.foeName || '对手';
+    const foes = Number(snapshot.pvp.aliveFoes) || 0;
+    dom.missionPvpFoeName.textContent = foes > 1 ? `${foes} 名存活` : (snapshot.pvp.foeName || '对手');
     dom.missionPvpSelfHp.textContent = snapshot.pvp.selfHp;
     dom.missionPvpFoeHp.textContent = snapshot.pvp.foeHp;
   }

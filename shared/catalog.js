@@ -15,6 +15,9 @@ export const PLANES = [
       speed: 430,
       fireDelay: 0.135,
       damage: 12,
+      cannonDamage: 5.5,
+      ammo: 360,
+      handling: 4,
       bulletSpeed: 940,
       pattern: 'single',
       radius: 16
@@ -36,6 +39,9 @@ export const PLANES = [
       speed: 520,
       fireDelay: 0.098,
       damage: 4.8,
+      cannonDamage: 2.8,
+      ammo: 480,
+      handling: 5,
       bulletSpeed: 1020,
       pattern: 'twin',
       radius: 14
@@ -57,6 +63,9 @@ export const PLANES = [
       speed: 340,
       fireDelay: 0.2,
       damage: 8.5,
+      cannonDamage: 4.2,
+      ammo: 300,
+      handling: 2,
       bulletSpeed: 830,
       pattern: 'spread',
       radius: 20
@@ -78,9 +87,36 @@ export const PLANES = [
       speed: 475,
       fireDelay: 0.112,
       damage: 7.4,
+      cannonDamage: 3.6,
+      ammo: 420,
+      handling: 5,
       bulletSpeed: 1060,
       pattern: 'pulse',
       radius: 16
+    }
+  },
+  {
+    id: 'bastion',
+    name: '壁垒',
+    code: 'BASTION / 21',
+    role: '重装堡垒',
+    tagline: '风暴可以撕开云层，却撕不开这面铁壁。',
+    desc: '为正面突防而生的重型装甲战机。转向迟缓、加速笨重，却拥有全场最高的结构值与载弹量，适合硬吃火力推进战线。',
+    shape: 'bastion',
+    unlock: 'free',
+    price: 0,
+    stats: { speed: 1, power: 4, armor: 5, handling: 1 },
+    loadout: {
+      hp: 280,
+      speed: 300,
+      fireDelay: 0.17,
+      damage: 7.2,
+      cannonDamage: 5.8,
+      ammo: 600,
+      handling: 1,
+      bulletSpeed: 760,
+      pattern: 'spread',
+      radius: 26
     }
   }
 ];

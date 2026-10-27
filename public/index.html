@@ -102,7 +102,7 @@
           <span class="dock-icon hangar">
             <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M16 4 27 11v10l-11 7L5 21V11Z"/><path d="m16 10 5 4v5l-5 4-5-4v-5Z"/></svg>
           </span>
-          <span class="dock-text"><b>战备机库</b><small>HANGAR · 4 AIRCRAFT</small></span>
+          <span class="dock-text"><b>战备机库</b><small>HANGAR · 5 AIRCRAFT</small></span>
           <span class="dock-arrow">↗</span>
         </button>
         <button class="dock-card" data-action="leaderboard">
@@ -284,12 +284,12 @@
           <div class="air3d-modes">
             <button class="air3d-mode is-active" data-air3d-mode="coop">
               <span class="air3d-mode-icon"><i></i><i></i></span>
-              <span class="air3d-mode-copy"><b>双机编队</b><small>CO-OP CAMPAIGN</small><em>两名飞行员共享空域与击落进度，协同清理敌方编队。</em></span>
+              <span class="air3d-mode-copy"><b>多机编队</b><small>CO-OP CAMPAIGN</small><em>最多 5 名飞行员共享空域与击落进度，协同清理敌方编队。</em></span>
               <span class="air3d-mode-tag">PvE</span>
             </button>
             <button class="air3d-mode" data-air3d-mode="pvp">
               <span class="air3d-mode-icon duel"><i></i><i></i></span>
-              <span class="air3d-mode-copy"><b>3D 王牌对决</b><small>3D DOGFIGHT</small><em>同一片三维战场。机炮、导弹与云层隐蔽，只留一个胜者。</em></span>
+              <span class="air3d-mode-copy"><b>3D 多人对决</b><small>3D DOGFIGHT</small><em>最多 5 机同场混战。机炮、导弹与云层隐蔽，只留一个胜者。</em></span>
               <span class="air3d-mode-tag">PvP</span>
             </button>
           </div>
@@ -303,7 +303,7 @@
         <div class="air3d-card connect-panel">
           <span class="eyebrow">DATA LINK</span>
           <h3>建立 3D 战场</h3>
-          <p class="air3d-desc">创建房间后，将 5 位房间码或邀请链接发给同一 Wi-Fi 下的飞行员。两名玩家接入后自动开始。</p>
+          <p class="air3d-desc">创建房间后，将 5 位房间码或邀请链接发给同一 Wi-Fi 下的飞行员。最多 5 人接入，房主可随时开始；满员时自动开战。</p>
           <button class="btn btn-primary btn-full" id="air3d-create-btn"><span>创建编队房间</span><small>HOST</small></button>
           <form id="air3d-join-form" autocomplete="off">
             <label class="code-label" for="air3d-room-code">ROOM CODE</label>
@@ -320,8 +320,8 @@
           <span class="eyebrow">PROTOCOL</span>
           <h3>3D 联机协议</h3>
           <ul class="air3d-info-list">
-            <li><b>共享空域</b><span>编队模式中两名玩家面对同一批敌机，击落进度共享。</span></li>
-            <li><b>雷达扫描</b><span>HUD 雷达会显示敌机、僚机与对手方位，并随扫描线刷新。</span></li>
+            <li><b>五人空域</b><span>每个房间最多 5 名飞行员，编队模式共享敌机与击落进度。</span></li>
+            <li><b>雷达扫描</b><span>HUD 雷达会显示敌机、全部僚机与对手方位，并随扫描线刷新。</span></li>
             <li><b>云层隐蔽</b><span>云层会干扰锁定与导弹追踪，也可以用来摆脱追击。</span></li>
             <li><b>主机权威</b><span>房主负责战场演算与敌机同步；请保持房主网络稳定。</span></li>
           </ul>
@@ -338,12 +338,12 @@
           <strong id="air3d-waiting-code">-----</strong>
           <button class="copy-btn" id="air3d-copy-btn">复制邀请</button>
         </div>
-        <div class="wingman-slots">
-          <div class="wingman filled" id="air3d-host-slot"><span>01</span><b id="air3d-host-name">你</b><small>房主</small></div>
-          <div class="wingman" id="air3d-guest-slot"><span>02</span><b>等待接入...</b><small>僚机</small></div>
+        <div class="wingman-slots wingman-slots-five" id="air3d-slot-list"></div>
+        <div class="air3d-waiting-mode" id="air3d-waiting-mode">CO-OP · 多机编队</div>
+        <div class="air3d-lobby-actions">
+          <button class="btn btn-primary" id="air3d-start-btn" hidden><span>开始战斗</span><small>LAUNCH</small></button>
+          <button class="text-btn danger" id="air3d-cancel-btn">取消房间</button>
         </div>
-        <div class="air3d-waiting-mode" id="air3d-waiting-mode">CO-OP · 双机编队</div>
-        <button class="text-btn danger" id="air3d-cancel-btn">取消房间</button>
       </div>
     </section>
 
@@ -502,7 +502,7 @@
         <div class="mission-weapons">
           <div class="m-weapon" id="mission-weapon-cannon">
             <span class="m-weapon-icon gun"></span>
-            <div><b>GUN</b><small>∞</small></div>
+            <div><b id="mission-cannon-ammo">360</b><small>GUN</small></div>
             <kbd>SPACE</kbd>
           </div>
           <div class="m-weapon" id="mission-weapon-missile">
@@ -543,8 +543,21 @@
           <div class="mw-action">释放诱弹 <kbd>C</kbd> · 大幅机动</div>
         </div>
 
+        <div class="mission-keyhints desktop-only" id="mission-keyhints" aria-label="键位提示">
+          <span class="keyhints-title">KEY BINDINGS</span>
+          <div class="keyhint"><kbd>鼠标拖动</kbd><span>自由操纵</span></div>
+          <div class="keyhint"><kbd>W / S</kbd><span>俯仰</span></div>
+          <div class="keyhint"><kbd>A / D</kbd><span>偏航</span></div>
+          <div class="keyhint"><kbd>Q / E</kbd><span>横滚</span></div>
+          <div class="keyhint"><kbd>SHIFT</kbd><span>加力</span></div>
+          <div class="keyhint"><kbd>SPACE</kbd><span>机炮（有限弹药）</span></div>
+          <div class="keyhint"><kbd>F</kbd><span>发射导弹</span></div>
+          <div class="keyhint"><kbd>C</kbd><span>释放诱弹</span></div>
+          <div class="keyhint"><kbd>ESC</kbd><span>暂停 / 菜单</span></div>
+        </div>
+
         <div class="mission-control-hint">
-          <span class="desktop-only">鼠标拖动操纵 · W/S 俯仰 · A/D 偏航 · Q/E 横滚</span>
+          <span class="desktop-only">鼠标拖动操纵 · 右侧显示键位提示</span>
           <span class="mobile-only">左侧摇杆操纵 · 右侧武器</span>
         </div>
 

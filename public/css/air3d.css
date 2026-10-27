@@ -528,3 +528,57 @@
     padding: 35px 8px;
   }
 }
+
+/* ---------- LOBBY READABILITY / 5-PLAYER SLOTS ---------- */
+
+.air3d-mode-copy b { font-size: 1rem; }
+.air3d-mode-copy small { font-size: 0.54rem; }
+.air3d-mode-copy em { font-size: 0.66rem; line-height: 1.7; }
+.air3d-mode-tag { font-size: 0.5rem; }
+.air3d-desc { font-size: 0.74rem; }
+.air3d-loadout b { font-size: 0.92rem; }
+.air3d-loadout small { font-size: 0.6rem; }
+.air3d-info-list b { font-size: 0.7rem; }
+.air3d-info-list span { font-size: 0.62rem; }
+.air3d-waiting-mode { font-size: 0.58rem; }
+
+.air3d-waiting .wingman-slots-five {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.air3d-waiting .wingman-slots-five .wingman {
+  flex: 1 1 120px;
+  min-height: 84px;
+}
+
+.air3d-waiting .wingman b { font-size: 0.82rem; }
+.air3d-waiting .wingman small { font-size: 0.6rem; }
+.air3d-waiting .wingman > span { font-size: 0.56rem; }
+
+.air3d-lobby-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.air3d-lobby-actions .btn {
+  min-width: 190px;
+}
+
+.air3d-lobby-actions .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.air3d-lobby-actions .text-btn {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .air3d-mode-copy em { font-size: 0.62rem; }
+  .air3d-desc { font-size: 0.68rem; }
+}

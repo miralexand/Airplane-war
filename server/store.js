@@ -72,7 +72,7 @@ export class Store {
       totalKills: 0,
       totalScore: 0,
       games: 0,
-      ownedPlanes: ['falcon', 'viper', 'titan'],
+      ownedPlanes: ['falcon', 'viper', 'titan', 'bastion'],
       ownedSkins: ['chrome'],
       equippedPlane: 'falcon',
       equippedSkin: 'chrome',
