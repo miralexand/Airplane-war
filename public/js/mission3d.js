@@ -1795,8 +1795,10 @@ export class Mission3D {
       .add(this.getPlayerForward().multiplyScalar(-3.5));
     let aimDirection = this.getPlayerForward();
     if (this.lockTarget && this.lockTarget.alive) {
-      const toTarget = this.lockTarget.position.clone().sub(this.player.position).normalize();
-      if (aimDirection.dot(toTarget) > 0.94) aimDirection = toTarget;
+      const offset = this.lockTarget.position.clone().sub(this.player.position);
+      const distance = offset.length();
+      const toTarget = offset.divideScalar(distance || 1);
+      if (distance <= 1600 && aimDirection.dot(toTarget) > 0.972) aimDirection = toTarget;
     }
     const ray = new THREE.Ray(this.player.position, aimDirection);
     let hitEnemy = null;
