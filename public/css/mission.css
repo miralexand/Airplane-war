@@ -1716,7 +1716,21 @@
     font-size: 0.68rem;
   }
 
-  .mission-radar-wrap,
+  .mission-radar-wrap {
+    right: 12px;
+    bottom: calc(max(22px, env(safe-area-inset-bottom)) + 196px);
+    gap: 4px;
+  }
+
+  .radar-frame {
+    width: 96px;
+    height: 96px;
+  }
+
+  .radar-caption {
+    gap: 5px;
+  }
+
   .mission-killfeed,
   .mission-control-hint {
     display: none;
@@ -1928,6 +1942,20 @@
   .mission-health {
     bottom: calc(max(20px, env(safe-area-inset-bottom)) + 122px);
     width: 135px;
+  }
+
+  .mission-radar-wrap {
+    right: 10px;
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 170px);
+  }
+
+  .radar-frame {
+    width: 86px;
+    height: 86px;
+  }
+
+  .radar-caption b {
+    display: none;
   }
 
   .mission-stick {

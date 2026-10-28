@@ -107,7 +107,7 @@ export const PLANES = [
       id: 'singularity',
       name: '相位奇点',
       short: '奇点',
-      cooldown: 62,
+      cooldown: 72,
       desc: '投放引力奇点，持续牵引并灼烧半径内的敌方编队。'
     },
     loadout: {

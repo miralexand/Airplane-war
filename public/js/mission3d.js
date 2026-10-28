@@ -1798,7 +1798,7 @@ export class Mission3D {
       const offset = this.lockTarget.position.clone().sub(this.player.position);
       const distance = offset.length();
       const toTarget = offset.divideScalar(distance || 1);
-      if (distance <= 1600 && aimDirection.dot(toTarget) > 0.972) aimDirection = toTarget;
+      if (distance <= 850 && aimDirection.dot(toTarget) > 0.992) aimDirection = toTarget;
     }
     const ray = new THREE.Ray(this.player.position, aimDirection);
     let hitEnemy = null;
@@ -1861,10 +1861,10 @@ export class Mission3D {
       if (!enemy.alive) continue;
       const toEnemy = enemy.position.clone().sub(this.player.position);
       const distance = toEnemy.length();
-      if (distance > 3800) continue;
+      if (distance > 2600) continue;
       const direction = toEnemy.clone().normalize();
       const dot = forward.dot(direction);
-      if (dot < 0.65) continue;
+      if (dot < 0.82) continue;
       const angle = Math.acos(clamp(dot, -1, 1));
       const score = angle * 4 + distance / 6000;
       if (score < candidateScore) {
@@ -1872,7 +1872,7 @@ export class Mission3D {
         candidate = enemy;
       }
     }
-    if (this.lockTarget && (!this.lockTarget.alive || this.lockTarget.position.distanceTo(this.player.position) > 4200)) {
+    if (this.lockTarget && (!this.lockTarget.alive || this.lockTarget.position.distanceTo(this.player.position) > 3000)) {
       this.lockTarget = null;
       this.lockProgress = 0;
       this.locked = false;
@@ -1883,7 +1883,7 @@ export class Mission3D {
       this.locked = false;
     } else if (candidate && candidate !== this.lockTarget) {
       const currentDir = this.lockTarget.position.clone().sub(this.player.position).normalize();
-      if (forward.dot(currentDir) < 0.62) {
+      if (forward.dot(currentDir) < 0.78) {
         this.lockTarget = candidate;
         this.lockProgress = 0;
         this.locked = false;
@@ -1946,7 +1946,9 @@ export class Mission3D {
     if (this.state !== 'playing' || this.paused || !this.player.alive) return;
     if (this.missileCooldown > 0 || this.missilesLeft <= 0) return;
     const lockedTarget = this.locked && this.lockTarget?.alive ? this.lockTarget : null;
-    const aimTarget = lockedTarget || (this.lockTarget?.alive ? this.lockTarget : null);
+    const aimTarget = lockedTarget && lockedTarget.position.distanceTo(this.player.position) <= 1200
+      ? lockedTarget
+      : null;
     const side = this.playerMissiles.length % 2 === 0 ? -1 : 1;
     const position = this.player.position.clone()
       .add(new THREE.Vector3(2.2 * side, -0.6, 1.2).applyQuaternion(this.player.quaternion));
@@ -2180,8 +2182,8 @@ export class Mission3D {
       core,
       rings,
       light,
-      life: 6,
-      maxLife: 6,
+      life: 4.5,
+      maxLife: 4.5,
       tick: 0
     };
   }
@@ -2197,17 +2199,17 @@ export class Mission3D {
     }
     singularity.tick -= dt;
     if (singularity.tick <= 0) {
-      singularity.tick = 0.5;
+      singularity.tick = 0.75;
       for (const enemy of [...this.enemies]) {
         if (!enemy.alive) continue;
         const distance = enemy.position.distanceTo(singularity.position);
-        if (distance > 1200) continue;
+        if (distance > 900) continue;
         if (!enemy.isNetworkPlayer && !enemy.isSnapshotEnemy) {
-          enemy.position.lerp(singularity.position, 0.045);
+          enemy.position.lerp(singularity.position, 0.02);
           enemy.group.position.copy(enemy.position);
         }
         this.spawnSparks(enemy.position.clone(), '#c9a4ff', 4);
-        this.damageEnemy(enemy, 18);
+        this.damageEnemy(enemy, 5);
       }
     }
     if (singularity.life <= 0) this.removeSingularity();
