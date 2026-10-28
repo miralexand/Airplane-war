@@ -88,6 +88,49 @@ const MAP_THEMES = {
       color: '#ffe8c8',
       opacities: [0.22, 0.15, 0.09]
     }
+  },
+  megacity: {
+    clear: '#0d1a29',
+    fog: '#1c3245',
+    fogDensity: 0.000072,
+    sky: {
+      top: '#04101f',
+      mid: '#2d5678',
+      bottom: '#d9a187',
+      sun: '#ffe1b8',
+      sunDirection: [0.28, 0.22, -0.68]
+    },
+    hemisphere: ['#cfe2ff', '#1a2634', 1.8],
+    sun: ['#ffd6aa', 2.8, 620, 760, -480],
+    fill: ['#6fa8ff', 1.35, -560, 320, 640],
+    sunSprite: '#ffd2a6',
+    surface: {
+      colors: ['#07131f', '#0d2334', '#05101b'],
+      line: '96,164,204',
+      repeat: 92,
+      tint: '#4d6b80',
+      roughness: 0.52,
+      metalness: 0.34
+    },
+    island: {
+      beach: '#2f3a38',
+      rock: ['#26332f', '#303d38'],
+      cap: '#56645d',
+      radius: [140, 340],
+      height: [260, 620],
+      distance: [3200, 6400]
+    },
+    cloud: {
+      color: '#c4d9ed',
+      opacities: [0.2, 0.13, 0.08]
+    },
+    city: {
+      ground: '#111922',
+      groundLine: '#2b3e4d',
+      maxHeight: 720,
+      blockSize: 300,
+      extent: 2350
+    }
   }
 };
 
@@ -175,6 +218,126 @@ function makeSurfaceTexture(theme = MAP_THEMES.blacksky) {
   texture.repeat.set(surface.repeat, surface.repeat);
   texture.anisotropy = 4;
   return texture;
+}
+
+function makeWindowTexture(base = '#0b1118', lit = '#ffd58a', accent = '#7fe3ff') {
+  const texture = createCanvasTexture(128, (ctx, size) => {
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, size, size);
+    for (let y = 5; y < size - 4; y += 10) {
+      for (let x = 5; x < size - 4; x += 10) {
+        const roll = Math.random();
+        if (roll < 0.18) {
+          ctx.fillStyle = accent;
+        } else if (roll < 0.46) {
+          ctx.fillStyle = lit;
+        } else {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+        }
+        ctx.globalAlpha = roll < 0.46 ? rand(0.55, 0.95) : 1;
+        ctx.fillRect(x, y, 5, 6);
+        ctx.globalAlpha = 1;
+      }
+    }
+  });
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 4;
+  return texture;
+}
+
+function buildAirliner() {
+  const group = new THREE.Group();
+  const bodyMaterial = new THREE.MeshStandardMaterial({
+    color: '#eef2f4',
+    metalness: 0.38,
+    roughness: 0.42
+  });
+  const trimMaterial = new THREE.MeshStandardMaterial({
+    color: '#3f6f9e',
+    metalness: 0.46,
+    roughness: 0.38
+  });
+  const darkMaterial = new THREE.MeshStandardMaterial({
+    color: '#202a33',
+    metalness: 0.62,
+    roughness: 0.34
+  });
+  const glassMaterial = new THREE.MeshStandardMaterial({
+    color: '#17232d',
+    emissive: new THREE.Color('#7fd9ff'),
+    emissiveIntensity: 0.32,
+    metalness: 0.82,
+    roughness: 0.16
+  });
+
+  const fuselage = new THREE.Mesh(new THREE.CylinderGeometry(2.9, 2.9, 28, 12), bodyMaterial);
+  fuselage.rotation.x = Math.PI / 2;
+  group.add(fuselage);
+
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(2.9, 7, 12), bodyMaterial);
+  nose.rotation.x = -Math.PI / 2;
+  nose.position.z = -17.5;
+  group.add(nose);
+
+  const tailCone = new THREE.Mesh(new THREE.ConeGeometry(2.9, 8, 12), bodyMaterial);
+  tailCone.rotation.x = Math.PI / 2;
+  tailCone.position.z = 18;
+  group.add(tailCone);
+
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(5.9, 0.5, 18), trimMaterial);
+  stripe.position.y = -0.6;
+  group.add(stripe);
+
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(40, 0.55, 7.2), bodyMaterial);
+  wing.position.set(0, -0.6, 1.5);
+  wing.rotation.y = 0.12;
+  group.add(wing);
+
+  const wingTrim = new THREE.Mesh(new THREE.BoxGeometry(40.2, 0.12, 1.1), trimMaterial);
+  wingTrim.position.set(0, -0.3, 1.5);
+  group.add(wingTrim);
+
+  const stabilizer = new THREE.Mesh(new THREE.BoxGeometry(16, 0.4, 4.2), bodyMaterial);
+  stabilizer.position.set(0, 0.3, 16);
+  group.add(stabilizer);
+
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(0.6, 8.4, 5.4), trimMaterial);
+  fin.position.set(0, 4, 15.8);
+  fin.rotation.x = -0.16;
+  group.add(fin);
+
+  const cockpit = new THREE.Mesh(new THREE.SphereGeometry(2.4, 14, 8), glassMaterial);
+  cockpit.scale.set(1, 0.55, 1.5);
+  cockpit.position.set(0, 0.9, -14.2);
+  group.add(cockpit);
+
+  for (const side of [-1, 1]) {
+    const engine = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.55, 4.8, 10), darkMaterial);
+    engine.rotation.x = Math.PI / 2;
+    engine.position.set(side * 10.5, -1.9, 1.8);
+    group.add(engine);
+    const intake = new THREE.Mesh(new THREE.CircleGeometry(1.25, 10), darkMaterial);
+    intake.position.set(side * 10.5, -1.9, -0.7);
+    intake.rotation.y = Math.PI;
+    group.add(intake);
+    const navLight = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55, 8, 8),
+      new THREE.MeshBasicMaterial({ color: side < 0 ? '#ff4a5f' : '#6dffc4' })
+    );
+    navLight.position.set(side * 20, -0.2, 1.5);
+    group.add(navLight);
+  }
+
+  const beacon = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 8, 8),
+    new THREE.MeshBasicMaterial({ color: '#fff3c4' })
+  );
+  beacon.position.set(0, 8.2, 15.5);
+  group.add(beacon);
+
+  group.scale.setScalar(1.15);
+  return { group, beacon };
 }
 
 function makeSky(theme = MAP_THEMES.blacksky) {
@@ -547,6 +710,11 @@ export class Mission3D {
     this.stallWarnTimer = 0;
     this.terrainWarned = false;
     this.mountainColliders = [];
+    this.cityColliders = [];
+    this.airliners = [];
+    this.airlinerTimer = 0;
+    this.airlinersWarned = false;
+    this.nextAirlinerId = 1;
     this.nextEnemyId = 1;
     this.networkStateClock = 0;
     this.snapshotClock = 0;
@@ -654,54 +822,59 @@ export class Mission3D {
 
     this.islands = [];
     this.mountainColliders = [];
-    for (let i = 0; i < 14; i += 1) {
-      const angle = rand(0, TAU);
-      const distance = rand(theme.island.distance[0], theme.island.distance[1]);
-      const radius = rand(theme.island.radius[0], theme.island.radius[1]);
-      const height = rand(theme.island.height[0], theme.island.height[1]);
-      const island = new THREE.Group();
-      const beach = new THREE.Mesh(
-        new THREE.CylinderGeometry(radius * 1.35, radius * 1.55, 8, 7),
-        new THREE.MeshStandardMaterial({ color: theme.island.beach, roughness: 0.92 })
-      );
-      beach.position.y = 0;
-      island.add(beach);
-      const mountain = new THREE.Mesh(
-        new THREE.ConeGeometry(radius, height, 6),
-        new THREE.MeshStandardMaterial({
-          color: theme.island.rock[i % theme.island.rock.length],
-          roughness: 0.94,
-          flatShading: true
-        })
-      );
-      mountain.position.y = height / 2 + 4;
-      island.add(mountain);
-      if (this.mapId === 'redmesa' && i % 3 === 0) {
-        const spire = new THREE.Mesh(
-          new THREE.ConeGeometry(radius * 0.32, height * 0.55, 5),
-          new THREE.MeshStandardMaterial({ color: theme.island.rock[(i + 1) % theme.island.rock.length], roughness: 0.96, flatShading: true })
+    this.cityColliders = [];
+    if (this.mapId === 'megacity') {
+      this.buildCity();
+    } else {
+      for (let i = 0; i < 14; i += 1) {
+        const angle = rand(0, TAU);
+        const distance = rand(theme.island.distance[0], theme.island.distance[1]);
+        const radius = rand(theme.island.radius[0], theme.island.radius[1]);
+        const height = rand(theme.island.height[0], theme.island.height[1]);
+        const island = new THREE.Group();
+        const beach = new THREE.Mesh(
+          new THREE.CylinderGeometry(radius * 1.35, radius * 1.55, 8, 7),
+          new THREE.MeshStandardMaterial({ color: theme.island.beach, roughness: 0.92 })
         );
-        spire.position.set(radius * 0.55, height * 0.52, -radius * 0.2);
-        island.add(spire);
+        beach.position.y = 0;
+        island.add(beach);
+        const mountain = new THREE.Mesh(
+          new THREE.ConeGeometry(radius, height, 6),
+          new THREE.MeshStandardMaterial({
+            color: theme.island.rock[i % theme.island.rock.length],
+            roughness: 0.94,
+            flatShading: true
+          })
+        );
+        mountain.position.y = height / 2 + 4;
+        island.add(mountain);
+        if (this.mapId === 'redmesa' && i % 3 === 0) {
+          const spire = new THREE.Mesh(
+            new THREE.ConeGeometry(radius * 0.32, height * 0.55, 5),
+            new THREE.MeshStandardMaterial({ color: theme.island.rock[(i + 1) % theme.island.rock.length], roughness: 0.96, flatShading: true })
+          );
+          spire.position.set(radius * 0.55, height * 0.52, -radius * 0.2);
+          island.add(spire);
+        }
+        const cap = new THREE.Mesh(
+          new THREE.ConeGeometry(radius * 0.25, height * 0.28, 6),
+          new THREE.MeshStandardMaterial({ color: theme.island.cap, roughness: 0.8, flatShading: true })
+        );
+        cap.position.y = height * 0.88;
+        island.add(cap);
+        island.position.set(Math.cos(angle) * distance, 0, Math.sin(angle) * distance);
+        island.rotation.y = rand(0, TAU);
+        this.scene.add(island);
+        this.islands.push(island);
+        this.mountainColliders.push({
+          x: island.position.x,
+          z: island.position.z,
+          radius,
+          outerRadius: radius * 1.55,
+          height: height * 1.04,
+          baseY: 4
+        });
       }
-      const cap = new THREE.Mesh(
-        new THREE.ConeGeometry(radius * 0.25, height * 0.28, 6),
-        new THREE.MeshStandardMaterial({ color: theme.island.cap, roughness: 0.8, flatShading: true })
-      );
-      cap.position.y = height * 0.88;
-      island.add(cap);
-      island.position.set(Math.cos(angle) * distance, 0, Math.sin(angle) * distance);
-      island.rotation.y = rand(0, TAU);
-      this.scene.add(island);
-      this.islands.push(island);
-      this.mountainColliders.push({
-        x: island.position.x,
-        z: island.position.z,
-        radius,
-        outerRadius: radius * 1.55,
-        height: height * 1.04,
-        baseY: 4
-      });
     }
 
     this.cloudTexture = makeCloudTexture();
@@ -756,6 +929,85 @@ export class Mission3D {
       smoke: makeSmokeTexture(),
       spark: makeGlowTexture('rgba(255,255,255,0.95)', 'rgba(255,255,255,0)')
     };
+  }
+
+  buildCity() {
+    const city = this.mapTheme.city || {};
+    const ground = new THREE.Mesh(
+      new THREE.BoxGeometry(5600, 12, 5600),
+      new THREE.MeshStandardMaterial({
+        color: city.ground || '#111922',
+        roughness: 0.92,
+        metalness: 0.08
+      })
+    );
+    ground.position.y = -2;
+    this.scene.add(ground);
+
+    const grid = new THREE.GridHelper(5400, 54, city.groundLine || '#2b3e4d', city.groundLine || '#2b3e4d');
+    grid.position.y = 4.4;
+    grid.material.transparent = true;
+    grid.material.opacity = 0.24;
+    this.scene.add(grid);
+
+    const windowTextures = [
+      makeWindowTexture('#0b1118', '#ffd58a', '#7fe3ff'),
+      makeWindowTexture('#0d1420', '#ffb45e', '#8fb8ff'),
+      makeWindowTexture('#101018', '#e8f2ff', '#ff7fd0')
+    ];
+    const roofMaterial = new THREE.MeshStandardMaterial({
+      color: '#1b2530',
+      roughness: 0.86,
+      metalness: 0.18
+    });
+    const sideMaterials = windowTextures.map((texture, index) => new THREE.MeshStandardMaterial({
+      map: texture,
+      emissiveMap: texture,
+      emissive: new THREE.Color(index === 1 ? '#ff9d4a' : index === 2 ? '#ff5fc8' : '#ffd58a'),
+      emissiveIntensity: index === 2 ? 0.72 : 0.52,
+      roughness: 0.62,
+      metalness: 0.34
+    }));
+
+    const blockSize = Number(city.blockSize) || 300;
+    const extent = Number(city.extent) || 2350;
+    const maxHeight = Number(city.maxHeight) || 720;
+    for (let gx = -extent; gx <= extent; gx += blockSize) {
+      for (let gz = -extent; gz <= extent; gz += blockSize) {
+        if (Math.hypot(gx, gz) < 700) continue;
+        const count = Math.random() < 0.55 ? 2 : 1;
+        for (let k = 0; k < count; k += 1) {
+          const width = rand(46, 96);
+          const depth = rand(46, 96);
+          const x = gx + rand(-blockSize * 0.23, blockSize * 0.23);
+          const z = gz + rand(-blockSize * 0.23, blockSize * 0.23);
+          if (Math.hypot(x, z) < 660) continue;
+          const height = rand(90, maxHeight) * (Math.random() < 0.14 ? 1.12 : 1);
+          const material = sideMaterials[Math.floor(Math.random() * sideMaterials.length)];
+          const building = new THREE.Mesh(
+            new THREE.BoxGeometry(width, height, depth),
+            [material, material, roofMaterial, roofMaterial, material, material]
+          );
+          building.position.set(x, height / 2 + 4, z);
+          this.scene.add(building);
+          this.cityColliders.push({
+            x,
+            z,
+            halfX: width / 2,
+            halfZ: depth / 2,
+            top: height + 4
+          });
+          if (height > 520 && Math.random() < 0.55) {
+            const antenna = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.8, 0.8, 26, 5),
+              new THREE.MeshBasicMaterial({ color: '#8bd8ff' })
+            );
+            antenna.position.set(x, height + 17, z);
+            this.scene.add(antenna);
+          }
+        }
+      }
+    }
   }
 
   initPlayer() {
@@ -1226,7 +1478,8 @@ export class Mission3D {
     this.player.maxHp = this.maxHp;
     this.player.alive = true;
     this.player.invuln = 0;
-    this.player.position.set(0, 330, 0);
+    const spawnAltitude = this.mapId === 'megacity' ? 620 : 330;
+    this.player.position.set(0, spawnAltitude, 0);
     this.player.velocity.set(0, 0, -this.flightSpeed);
     this.player.speed = this.flightSpeed;
     this.player.quaternion.identity();
@@ -1255,13 +1508,13 @@ export class Mission3D {
       const total = Math.max(2, this.networkPlayers.length || this.remotePlayers.size + 1);
       const radius = 820;
       const selfAngle = (this.selfSlot / total) * TAU;
-      this.player.position.set(Math.sin(selfAngle) * radius, 330, -Math.cos(selfAngle) * radius);
+      this.player.position.set(Math.sin(selfAngle) * radius, spawnAltitude, -Math.cos(selfAngle) * radius);
       const spawnDir = new THREE.Vector3(-this.player.position.x, 0, -this.player.position.z).normalize();
       this.player.velocity.copy(spawnDir).multiplyScalar(this.flightSpeed);
       this.yaw = Math.PI - selfAngle;
       for (const remote of this.remotePlayers.values()) {
         const angle = (remote.slot / total) * TAU;
-        remote.targetPosition.set(Math.sin(angle) * radius, 330, -Math.cos(angle) * radius);
+        remote.targetPosition.set(Math.sin(angle) * radius, spawnAltitude, -Math.cos(angle) * radius);
         remote.group.position.copy(remote.targetPosition);
         const dir = new THREE.Vector3(-remote.targetPosition.x, 0, -remote.targetPosition.z).normalize();
         const q = quaternionFromForward(dir);
@@ -1284,6 +1537,8 @@ export class Mission3D {
     this.ammoEmptyWarned = false;
     this.pvpState = { ended: false };
     this.clearEntities();
+    this.airlinerTimer = 8;
+    this.airlinersWarned = false;
     this.enemies = [];
     if (this.isPvp) {
       for (const remote of this.remotePlayers.values()) {
@@ -1369,6 +1624,11 @@ export class Mission3D {
       flare.sprite.material.dispose?.();
     }
     this.flares = [];
+    for (const plane of this.airliners) {
+      this.scene.remove(plane.group);
+      this.disposeGroup(plane.group);
+    }
+    this.airliners = [];
     for (const effect of this.effects) {
       this.scene.remove(effect.sprite);
       effect.sprite.material.dispose?.();
@@ -1407,7 +1667,61 @@ export class Mission3D {
     this.callbacks.onEvent?.({ type: 'message', kicker: 'NEW CONTACT', text: '敌方增援抵达', tone: 'warning' });
   }
 
+  spawnAirliner() {
+    if (this.mapId !== 'megacity') return;
+    const startAngle = rand(0, TAU);
+    const altitude = rand(880, 1260);
+    const start = new THREE.Vector3(Math.cos(startAngle) * 5200, altitude, Math.sin(startAngle) * 5200);
+    const endAngle = startAngle + Math.PI + rand(-0.55, 0.55);
+    const end = new THREE.Vector3(Math.cos(endAngle) * 5200, altitude + rand(-80, 80), Math.sin(endAngle) * 5200);
+    const direction = end.clone().sub(start).normalize();
+    const model = buildAirliner();
+    model.group.position.copy(start);
+    model.group.quaternion.copy(quaternionFromForward(direction));
+    this.scene.add(model.group);
+    this.airliners.push({
+      id: this.nextAirlinerId++,
+      group: model.group,
+      beacon: model.beacon,
+      position: model.group.position,
+      velocity: direction.multiplyScalar(rand(150, 210)),
+      age: 0,
+      blink: rand(0, 1),
+      collisionRadius: 36
+    });
+    if (!this.airlinersWarned) {
+      this.airlinersWarned = true;
+      this.message('CIVILIAN TRAFFIC', '民航航线穿越空域 · 注意避让', 'info');
+    }
+  }
+
+  updateAirliners(dt) {
+    if (this.mapId !== 'megacity' || this.state !== 'playing' || this.paused) return;
+    this.airlinerTimer -= dt;
+    if (this.airlinerTimer <= 0) {
+      if (this.airliners.length < 4) this.spawnAirliner();
+      this.airlinerTimer = rand(20, 32);
+    }
+    for (let i = this.airliners.length - 1; i >= 0; i -= 1) {
+      const plane = this.airliners[i];
+      plane.age += dt;
+      plane.position.addScaledVector(plane.velocity, dt);
+      plane.blink += dt;
+      if (plane.beacon) plane.beacon.visible = Math.sin(plane.blink * 6.5) > 0;
+      if (this.player.alive && plane.position.distanceTo(this.player.position) < plane.collisionRadius) {
+        this.crashPlayer('airliner');
+        return;
+      }
+      if (plane.position.length() > 5900 || plane.age > 80) {
+        this.scene.remove(plane.group);
+        this.disposeGroup(plane.group);
+        this.airliners.splice(i, 1);
+      }
+    }
+  }
+
   spawnEnemy(position, index) {
+    if (this.mapId === 'megacity') position.y = Math.max(position.y, 640);
     const palette = ENEMY_PALETTES[index % ENEMY_PALETTES.length];
     const enemyId = ['viper', 'falcon', 'titan'][index % 3];
     const model = buildFighter(enemyId, palette, true);
@@ -1968,7 +2282,7 @@ export class Mission3D {
       age: 0,
       life: 10,
       trailTimer: 0,
-      damage: 58
+      damage: 46
     });
     this.missilesLeft -= 1;
     this.missileCooldown = 0.35;
@@ -2066,7 +2380,7 @@ export class Mission3D {
     if (ultimate.id === 'storm') {
       const targets = this.enemies
         .filter((enemy) => enemy.alive && enemy.position.distanceTo(this.player.position) < 5400)
-        .slice(0, 4);
+        .slice(0, 3);
       if (!targets.length) {
         this.message('ULTIMATE', '空域内没有可锁定目标', 'info');
         return;
@@ -2076,21 +2390,21 @@ export class Mission3D {
       return;
     }
     if (ultimate.id === 'afterburner') {
-      this.ultimateActive = 6;
-      this.player.invuln = Math.max(this.player.invuln, 6);
+      this.ultimateActive = 5;
+      this.player.invuln = Math.max(this.player.invuln, 5);
       this.boost = 100;
-      this.message('ULTIMATE', `${ultimate.name} · 超频突进 6 秒`, 'success');
+      this.message('ULTIMATE', `${ultimate.name} · 超频突进 5 秒`, 'success');
       return;
     }
     if (ultimate.id === 'thunder') {
-      const radius = 1600;
+      const radius = 1300;
       let hits = 0;
       for (const enemy of [...this.enemies]) {
         if (!enemy.alive) continue;
         if (enemy.position.distanceTo(this.player.position) > radius) continue;
         this.addTracer(this.player.position.clone(), enemy.position.clone(), '#d3e6c9', 0.38, 9);
         this.spawnSparks(enemy.position.clone(), '#c6dcc0', 9);
-        this.damageEnemy(enemy, enemy.isPvpTarget ? 52 : 90);
+        this.damageEnemy(enemy, enemy.isPvpTarget ? 40 : 90);
         hits += 1;
       }
       this.spawnExplosion(this.player.position.clone(), 2.5);
@@ -2104,8 +2418,8 @@ export class Mission3D {
       return;
     }
     if (ultimate.id === 'fortress') {
-      this.ultimateShield = 8;
-      this.player.hp = Math.min(this.player.maxHp, this.player.hp + 90);
+      this.ultimateShield = 6;
+      this.player.hp = Math.min(this.player.maxHp, this.player.hp + 75);
       if (this.shieldMesh) this.shieldMesh.visible = true;
       this.spawnShockwave(this.player.position.clone(), '#c6dcc0', 120);
       this.message('ULTIMATE', `${ultimate.name} · 能量壁垒展开`, 'success');
@@ -2132,7 +2446,7 @@ export class Mission3D {
       age: 0,
       life: 10,
       trailTimer: 0,
-      damage: 78,
+      damage: 55,
       ultimate: true
     });
   }
@@ -2209,7 +2523,7 @@ export class Mission3D {
           enemy.group.position.copy(enemy.position);
         }
         this.spawnSparks(enemy.position.clone(), '#c9a4ff', 4);
-        this.damageEnemy(enemy, 5);
+        this.damageEnemy(enemy, 7);
       }
     }
     if (singularity.life <= 0) this.removeSingularity();
@@ -2371,7 +2685,7 @@ export class Mission3D {
         const distance = missile.position.distanceTo(missile.target.position);
         if (distance < 18) {
           if (missile.targetType === 'player') {
-            this.damagePlayer(42, 'MISSILE');
+            this.damagePlayer(30, 'MISSILE');
             this.spawnExplosion(missile.position, 2.2);
           } else {
             this.spawnExplosion(missile.position, 0.8);
@@ -2455,6 +2769,7 @@ export class Mission3D {
     const altitude = player.position.y;
     const clearance = Math.max(10, player.radius * 0.7);
     let nearTerrain = false;
+    let nearBuilding = false;
     for (const collider of this.mountainColliders) {
       const dx = player.position.x - collider.x;
       const dz = player.position.z - collider.z;
@@ -2469,9 +2784,22 @@ export class Mission3D {
       }
       if (altitude < surfaceY + 210) nearTerrain = true;
     }
+    for (const building of this.cityColliders) {
+      const dx = Math.abs(player.position.x - building.x) - building.halfX;
+      const dz = Math.abs(player.position.z - building.z) - building.halfZ;
+      const gap = Math.max(dx, dz);
+      if (gap < clearance && altitude < building.top + clearance) {
+        this.crashPlayer('building');
+        return true;
+      }
+      if (gap < 220 && altitude < building.top + 220) {
+        nearTerrain = true;
+        nearBuilding = true;
+      }
+    }
     if (nearTerrain && !this.terrainWarned) {
       this.terrainWarned = true;
-      this.message('TERRAIN AHEAD', '前方山体 · 立即拉升', 'warning');
+      this.message('TERRAIN AHEAD', nearBuilding ? '前方高楼 · 立即拉升' : '前方山体 · 立即拉升', 'warning');
       audio.warningBeep(true);
       this.cameraShake = Math.max(this.cameraShake, 4);
     } else if (!nearTerrain) {
@@ -2764,8 +3092,15 @@ export class Mission3D {
       this.message(success ? 'DOGFIGHT WON' : 'DOGFIGHT LOST', success ? '你赢下了这场混战' : '你被击落了', success ? 'success' : 'danger');
     } else if (success) {
       this.message('MISSION COMPLETE', '目标全部击落', 'success');
-    } else if (reason === 'ground' || reason === 'mountain') {
-      this.message(reason === 'mountain' ? 'TERRAIN IMPACT' : 'GROUND IMPACT', reason === 'mountain' ? '撞山坠机' : '撞地坠机', 'danger');
+    } else if (reason === 'ground' || reason === 'mountain' || reason === 'building' || reason === 'airliner') {
+      const impacts = {
+        ground: ['GROUND IMPACT', '撞地坠机'],
+        mountain: ['TERRAIN IMPACT', '撞山坠机'],
+        building: ['BUILDING IMPACT', '撞击高楼坠机'],
+        airliner: ['CIVILIAN COLLISION', '与民航客机相撞坠机']
+      };
+      const impact = impacts[reason] || impacts.ground;
+      this.message(impact[0], impact[1], 'danger');
     } else {
       this.message(reason === 'timeout' ? 'TIME EXPIRED' : 'AIRCRAFT DOWN', '任务失败', 'danger');
     }
@@ -3017,6 +3352,7 @@ export class Mission3D {
       } else if (!this.isPvp) {
         this.updateEnemies(dt);
       }
+      this.updateAirliners(dt);
       this.updatePlayerMissiles(dt);
       this.updateEnemyMissiles(dt);
       this.updateFlares(dt);

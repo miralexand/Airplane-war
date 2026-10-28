@@ -919,7 +919,7 @@
 
 .air3d-map-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 7px;
   margin-top: 8px;
 }
@@ -1030,6 +1030,7 @@
 
 .air3d-room-map-options {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 

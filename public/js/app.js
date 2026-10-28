@@ -456,7 +456,7 @@ function bindEvents() {
     });
   });
 
-  dom.launchBtn.addEventListener('click', () => startSingle('endless'));
+  dom.launchBtn.addEventListener('click', confirmHangarSelection);
   dom.missionStartBtn.addEventListener('click', startMission3D);
   dom.missionCancelBtn.addEventListener('click', exitMission3D);
   dom.missionPauseBtn.addEventListener('click', openMissionPause);
@@ -1351,6 +1351,19 @@ function openHangar() {
   if (!isSkinOwned(state.selectedSkin)) state.selectedSkin = 'chrome';
   hideAllModals();
   showScreen('hangar');
+}
+
+async function confirmHangarSelection() {
+  const plane = getPlane(state.selectedPlane);
+  if (!isPlaneOwned(plane.id)) {
+    toast('该战机尚未解锁', 'error');
+    return;
+  }
+  state.selectedPlane = plane.id;
+  saveLoadout();
+  await equipCurrent();
+  toast(`${plane.name} 已设为出击座机`);
+  showScreen('home');
 }
 
 function renderHangar() {

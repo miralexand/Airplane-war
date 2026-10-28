@@ -448,7 +448,7 @@ a {
 }
 
 .hero-copy .eyebrow {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .hero-copy .eyebrow::before {
@@ -466,13 +466,14 @@ a {
   font-family: var(--display);
   font-size: clamp(4.7rem, 9.6vw, 10.2rem);
   font-weight: 700;
-  letter-spacing: -0.06em;
-  line-height: 0.78;
+  letter-spacing: -0.02em;
+  line-height: 1;
   text-transform: uppercase;
   filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.42));
 }
 
 .title-fill {
+  color: #eef5e8;
   background: linear-gradient(115deg, #f9fcf5 10%, #dbe8d4 40%, #a9c4a8 62%, #f0f6ea 88%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -480,13 +481,19 @@ a {
 }
 
 .title-stroke {
-  color: transparent;
-  -webkit-text-stroke: 1.5px rgba(198, 220, 192, 0.65);
+  color: rgba(198, 220, 192, 0.82);
   text-shadow: 0 0 38px rgba(198, 220, 192, 0.13);
 }
 
+@supports (-webkit-text-stroke: 1px #000) {
+  .title-stroke {
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(198, 220, 192, 0.65);
+  }
+}
+
 .hero-en {
-  margin-top: 13px;
+  margin-top: 10px;
   color: rgba(198, 214, 196, 0.55);
   font-family: var(--display);
   font-size: clamp(0.76rem, 1vw, 0.92rem);
@@ -498,7 +505,7 @@ a {
 }
 
 .hero-lead {
-  margin-top: 26px;
+  margin-top: 22px;
   color: #b6c6b7;
   font-size: clamp(0.82rem, 1vw, 0.96rem);
   font-weight: 300;
@@ -510,13 +517,13 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 33px;
+  margin-top: 28px;
 }
 
 .hero-meta {
   display: flex;
   gap: 0;
-  margin-top: 38px;
+  margin-top: 30px;
 }
 
 .hero-meta > div {
@@ -1002,14 +1009,17 @@ a {
 
 .home-footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 6px 18px;
   width: min(1420px, 100%);
   margin: 16px auto 0;
   color: var(--muted-2);
   font-family: var(--display);
   font-size: 0.54rem;
   letter-spacing: 0.12em;
+  line-height: 1.5;
 }
 
 .home-footer > span {
@@ -3452,7 +3462,7 @@ a {
 
   .hero-title {
     font-size: clamp(3.7rem, 19vw, 6.5rem);
-    line-height: 0.8;
+    line-height: 1;
   }
 
   .hero-en {

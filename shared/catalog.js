@@ -14,8 +14,8 @@ export const PLANES = [
       id: 'storm',
       name: '苍穹风暴',
       short: '风暴',
-      cooldown: 48,
-      desc: '同时锁定最多 4 个目标，齐射高伤追踪导弹。'
+      cooldown: 56,
+      desc: '同时锁定最多 3 个目标，齐射高伤追踪导弹。'
     },
     loadout: {
       hp: 110,
@@ -45,8 +45,8 @@ export const PLANES = [
       id: 'afterburner',
       name: '超频突袭',
       short: '超频',
-      cooldown: 52,
-      desc: '6 秒极限加速并免疫伤害，强行穿过敌方火力网。'
+      cooldown: 54,
+      desc: '5 秒极限加速并免疫伤害，强行穿过敌方火力网。'
     },
     loadout: {
       hp: 82,
@@ -76,8 +76,8 @@ export const PLANES = [
       id: 'thunder',
       name: '雷霆万钧',
       short: '雷霆',
-      cooldown: 55,
-      desc: '释放环形等离子冲击，重创周围 1.6 公里内所有敌机。'
+      cooldown: 58,
+      desc: '释放环形等离子冲击，重创周围 1.3 公里内所有敌机。'
     },
     loadout: {
       hp: 172,
@@ -138,8 +138,8 @@ export const PLANES = [
       id: 'fortress',
       name: '铁壁领域',
       short: '铁壁',
-      cooldown: 60,
-      desc: '修复 90 点结构并展开 8 秒能量壁垒，大幅降低所受伤害。'
+      cooldown: 64,
+      desc: '修复 75 点结构并展开 6 秒能量壁垒，大幅降低所受伤害。'
     },
     loadout: {
       hp: 280,
@@ -286,6 +286,13 @@ export const AIR_MAPS = [
     en: 'RED MESA',
     tagline: '赤色台地拔地而起，在狭窄峡谷间低空缠斗。',
     accent: '#ffb15e'
+  },
+  {
+    id: 'megacity',
+    name: '霓虹都会',
+    en: 'NEON METRO',
+    tagline: '摩天楼群刺破云层，民航客机定时穿越航线，低空缠斗危机四伏。',
+    accent: '#8de0ff'
   }
 ];
 
