@@ -289,10 +289,10 @@ export const AIR_MAPS = [
   },
   {
     id: 'megacity',
-    name: '霓虹都会',
-    en: 'NEON METRO',
-    tagline: '摩天楼群刺破云层，民航客机定时穿越航线，低空缠斗危机四伏。',
-    accent: '#8de0ff'
+    name: '雾都山城',
+    en: 'MOUNTAIN CITY',
+    tagline: '两江穿城、群楼依山而起，大型民航客机沿雾中山脊穿越空域。',
+    accent: '#e7be83'
   }
 ];
 

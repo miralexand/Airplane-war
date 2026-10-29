@@ -291,6 +291,8 @@ function cacheDom() {
   dom.missionBriefPlane = $('#mission-brief-plane');
   dom.missionBriefMap = $('#mission-brief-map');
   dom.missionMapTagline = $('#mission-map-tagline');
+  dom.missionOperationMap = $('#mission-operation-map');
+  dom.missionRailMap = $('#mission-rail-map');
   dom.missionStartBtn = $('#mission-start-btn');
   dom.missionCancelBtn = $('#mission-cancel-btn');
   dom.missionPause = $('#mission-pause');
@@ -1202,6 +1204,8 @@ function renderMapSelections() {
   });
   if (dom.missionBriefMap) dom.missionBriefMap.textContent = map.name;
   if (dom.missionMapTagline) dom.missionMapTagline.textContent = map.tagline;
+  if (dom.missionOperationMap) dom.missionOperationMap.textContent = `OPERATION ${map.en}`;
+  if (dom.missionRailMap) dom.missionRailMap.textContent = map.en;
   if (dom.air3dWaitingMapName) {
     const roomMap = state.air3d.slot === 0 && state.air3d.waiting
       ? state.selectedMap
